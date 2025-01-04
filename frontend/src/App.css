@@ -1,0 +1,11 @@
+*{
+  color:black;
+}
+
+.messages{
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+
