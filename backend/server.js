@@ -7,6 +7,8 @@ import userRoutes from './routes/userRoutes.js';
 import charRoutes from './routes/chatRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import { Server } from 'socket.io';  
+import messageModel from './models/messageModel.js';
+import ChatModel from './models/chatModels.js';
 
 dotenv.config(); 
 const app = express();
@@ -15,7 +17,8 @@ connectDB();
 
 app.use(express.json());
 app.use(cors({ 
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000','https://cjkvr9gl-3000.inc1.devtunnels.ms/'],
+    credentials:true,
 }));
 
 app.get('/', (req, res) => {
@@ -34,6 +37,8 @@ app.get('/api/chat/:id', (req, res) => {
 const server = app.listen(8080, () => {
     console.log(`Server running on port ${process.env.PORT}`);
 });
+
+
 
 const io = new Server(server, {
     pingTimeout: 60000,
@@ -58,6 +63,20 @@ io.on("connection", (socket) => {
     socket.on("typing",(room)=>socket.in(room).emit("typing"))
     socket.on("stop typing",(room)=>socket.in(room).emit("stop typing"))
 
+    socket.on("message-read", async ({ loggedUser, senderUser, chatId }) => {
+        const msgg = await messageModel.find({ chat: chatId });
+        let tempmsg = [];
+        
+        // Use for...of loop to handle async operations properly
+        for (const msg of msgg) {
+            let a = await messageModel.findByIdAndUpdate(msg._id, { isRead: true }, { new: true });
+            tempmsg.push(a);
+        }
+        console.log(senderUser);
+        socket.to(senderUser).emit("senderDoubleTick",tempmsg);
+    });
+    
+    
 
     socket.on("new message",(newMessageReceived)=>{
         var chat=newMessageReceived.chat;
@@ -69,4 +88,39 @@ io.on("connection", (socket) => {
             socket.in(user._id).emit("message received",newMessageReceived);
         });
     })
+            
+
+    socket.on("deleteMessage", async (messageId) => {
+        try {
+            const deletedMessage = await messageModel.findByIdAndDelete(messageId);
+    
+            if (!deletedMessage) {
+                return socket.emit("error", "Message not found");
+            }
+
+
+            const chatRoom = deletedMessage.chat; 
+            io.in(chatRoom).emit("messageDeleted", messageId);
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            socket.emit("error", "Failed to delete the message");
+        }
+    });
+
+    socket.on("deleteChat", async (chatId) => {
+        try {
+            // Backend DB deletion logic
+            const deleteChat = await ChatModel.findByIdAndDelete(chatId);
+    
+            if (!deleteChat) {
+                return socket.emit("error", "Message not found");
+            }
+
+            io.emit("chatDeleted", chatId);
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            socket.emit("error", "Failed to delete the chat");
+        }
+    });
+    
 });

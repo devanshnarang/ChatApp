@@ -2,6 +2,10 @@
   color:black;
 }
 
+body{
+  overflow: hidden;
+}
+
 .messages{
   display: flex;
   flex-direction: column;
@@ -9,3 +13,51 @@
   scrollbar-width: none;
 }
 
+.container-fluid {
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.typing-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px; /* Space between dots */
+}
+
+.typing-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #000; /* Visible dot color */
+  opacity: 0;
+  animation: typing 1.5s infinite ease-in-out;
+}
+
+/* Animation for the typing dots */
+@keyframes typing {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Delay for each dot */
+.typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}

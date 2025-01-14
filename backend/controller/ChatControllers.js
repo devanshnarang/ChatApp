@@ -24,7 +24,6 @@ export const accessChatsController=async(req,res)=>{
         select:"name pic email",
     });
     if(isChat.length>0){
-        console.log(isChat[0]);
         return res.send(isChat[0]);
     }else{
         var chatData={
@@ -52,12 +51,10 @@ export const fetchChatsController=async(req,res)=>{
           .populate("groupAdmin","-password")
           .populate("latestMessage")
           .sort({updatedAt: -1});
-
         const populatedChats = await userModel.populate(chats,{
             path:"latestMessage.sender",
             select:"name pic email",
         })
-        console.log("Fetching Chats Controller!! ");
         return res.status(200).send({
             success:true,
             chats:populatedChats,
@@ -174,7 +171,6 @@ export const removeFromGroupController=async(req,res)=>{
          .populate("groupAdmin","-password");
 
         if(!removed){
-            console.log("HI");
             return res.status(404).send({
                 success:false,
                 message:error.message,

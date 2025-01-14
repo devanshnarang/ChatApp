@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 const Profile = ({ showModal, closeModal,user }) => {
+
 
   return (
     <>
@@ -9,25 +10,25 @@ const Profile = ({ showModal, closeModal,user }) => {
           {/* Backdrop */}
           <div
             className="modal-backdrop fade show"
-            style={{ zIndex: 1040 }}
+            style={{ zIndex: 4 }}
           ></div>
           {/* Modal */}
           <div
             className={`modal fade show`}
             tabIndex="-1"
             role="dialog"
-            style={{ display: "block", zIndex: 1050 }}
+            style={{ display: "block", zIndex: 4 }}
             aria-labelledby="exampleModalCenterTitle"
             aria-hidden="false"
           >
-            <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-dialog modal-dialog-centered" role="document" style={{zIndex:3}}>
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="exampleModalLongTitle">
-                    My Profile
+                    Profile
                   </h5>
                 </div>
-                <div className="modal-body">
+                <div className="modal-body d-flex flex-column align-self-stretch mb-2">
                   <div className="text-center">
                     <img
                       src={user?.pic}

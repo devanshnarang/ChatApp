@@ -43,9 +43,7 @@ export const loginController = async(req,res)=>{
         if(!email)return res.send({error:'Email is undefined'});
         if(!password)return res.send({error:'Password is undefined'});
         const userExists=await userModel.findOne({email});
-        if(userExists)console.log(password);
         const checking=await comparePassword(password,userExists.password);
-        console.log(checking);
         if(userExists && checking){
             const tempToken=generateToken(userExists);
             return res.status(201).send({
@@ -77,10 +75,8 @@ export const allUserController = async(req,res)=>{
                 {email:{$regex:req.query.search,$options:"i"}},
             ]
         }:{};
-        console.log("SEarchgin");
         const users = await userModel.find(keyword).find({_id:{$ne:req.user._id}});
         res.send(users);
-        console.log(keyword);
     } catch (error) {
         console.log(error.message);
     }

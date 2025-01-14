@@ -60,9 +60,7 @@ const Signup = () => {
         },
       };
       const {data} = await axios.post("/api/user/register",{name,email,password,pic},config);
-      alert("Login Successfully");
-      localStorage.setItem('userInfo',JSON.stringify(data));
-      navigate("/chats");
+      navigate("/login");
     } catch (error) {
       console.log("An error occured");
       console.log(error.message);

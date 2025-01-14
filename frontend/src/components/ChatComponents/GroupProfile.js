@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChatState } from "../../Context/ChatProvider";
+import { ChatState } from "../../Context/ChatProvider.js";
 import axios from "axios";
 
 const GroupProfile = ({
@@ -9,7 +9,7 @@ const GroupProfile = ({
   setUsers,
   fetchagain,
   setFetchagain,
-  fetchMessages
+  fetchMessages,
 }) => {
   const { user, selectedChat, setSelectedChat } = ChatState();
   const [groupName, setGroupName] = useState("");
@@ -18,7 +18,7 @@ const GroupProfile = ({
   const [resultLimit, setResultLimit] = useState(4); // Limit number of results shown
 
   const handleRemove = async (u) => {
-    if(selectedChat?.groupAdmin._id!==user.userExists._id){
+    if (selectedChat?.groupAdmin._id !== user.userExists._id) {
       alert("Only Admin can Add!!");
     }
     try {
@@ -28,11 +28,15 @@ const GroupProfile = ({
         },
       };
 
-      const { data } = await axios.post('/api/chat/groupremove',{chatId:selectedChat._id,userId:u._id}, config);
-      (user._id===u._id)?setSelectedChat():setSelectedChat(data);
+      const { data } = await axios.post(
+        "/api/chat/groupremove",
+        { chatId: selectedChat._id, userId: u._id },
+        config
+      );
+      user._id === u._id ? setSelectedChat() : setSelectedChat(data);
       setSelectedChat(data.removed);
       setUsers(data.removed.users);
-      fetchMessages(); 
+      fetchMessages();
     } catch (error) {
       console.error(error);
     }
@@ -82,11 +86,11 @@ const GroupProfile = ({
   };
 
   const handleAddUser = async (u) => {
-    if(selectedChat?.users.find((t)=>t._id===u._id)){
+    if (selectedChat?.users.find((t) => t._id === u._id)) {
       alert("User already in the group!!");
       return;
     }
-    if(selectedChat?.groupAdmin._id!==user.userExists._id){
+    if (selectedChat?.groupAdmin._id !== user.userExists._id) {
       alert("Only Admin can Add!!");
       return;
     }
@@ -97,7 +101,11 @@ const GroupProfile = ({
         },
       };
 
-      const { data } = await axios.post('/api/chat/groupAdd',{chatId:selectedChat._id,userId:u._id}, config);
+      const { data } = await axios.post(
+        "/api/chat/groupAdd",
+        { chatId: selectedChat._id, userId: u._id },
+        config
+      );
       setSelectedChat(data.added);
       setFetchagain(!fetchagain);
       setUsers(data.added.users);
@@ -111,7 +119,6 @@ const GroupProfile = ({
     }
   }, [userToAdd]);
 
-
   return (
     <>
       {showModal && (
@@ -119,14 +126,14 @@ const GroupProfile = ({
           {/* Backdrop */}
           <div
             className="modal-backdrop fade show"
-            style={{ zIndex: 1040 }}
+            style={{ zIndex: 3 }}
           ></div>
           {/* Modal */}
           <div
             className={`modal fade show`}
             tabIndex="-1"
             role="dialog"
-            style={{ display: "block", zIndex: 1050 }}
+            style={{ display: "block", zIndex: 3 }}
             aria-labelledby="exampleModalCenterTitle"
             aria-hidden="false"
           >
@@ -137,43 +144,58 @@ const GroupProfile = ({
                     {selectedChat.chatName}
                   </h5>
                 </div>
-                <div className="d-flex flex-row mb-2">
+                <div
+                  className="users-grid"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", // Auto-adjust columns
+                    gap: "10px", // Adjust spacing between items
+                    width: "100%", // Fit the parent container
+                    boxSizing: "border-box", // Prevent overflow by including padding in width
+                  }}
+                >
                   {users.map((u) => {
                     return (
                       <div
-                        className="d-flex flex-row"
+                        className="user-item"
                         key={u._id}
-                        style={{ backgroundColor: "wheat", marginRight: "4px" }}
+                        style={{
+                          backgroundColor: "wheat",
+                          padding: "8px",
+                          borderRadius: "8px",
+                          textAlign: "center", // Center-align content
+                          wordWrap: "break-word", // Ensure long text wraps within the box
+                          display:'flex',
+                          flexDirection:'row',
+                          justifyContent:'space-evenly',
+                          fontWeight:'bold'
+                        }}
                       >
-                        <div>{u.email}</div>
-                        <div>
-                          <button
-                            style={{
-                              height: "28px",
-                              width: "28px",
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              borderRadius: "50%",
-                              borderBlock: "wheat",
-                              border: "1px solid #ccc",
-                              marginLeft: "8px",
-                              padding: "0px 4px 4px 0px",
-                            }}
-                            onClick={() => handleRemove(u)}
+                        <div>{u.name}</div>
+                        <button
+                          style={{
+                            marginTop: "5px",
+                            height: "28px",
+                            width: "28px",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            borderRadius: "50%",
+                            border: "1px solid #ccc",
+                          }}
+                          onClick={() => handleRemove(u)}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            fill="currentColor"
+                            className="bi bi-x"
+                            viewBox="0 0 12 12"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              className="bi bi-x"
-                              viewBox="0 0 12 12"
-                            >
-                              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
-                            </svg>
-                          </button>
-                        </div>
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                          </svg>
+                        </button>
                       </div>
                     );
                   })}
@@ -207,7 +229,7 @@ const GroupProfile = ({
                   {/* Render search results below the search bar */}
                   {searchResult?.slice(0, resultLimit).map((user) => (
                     <div
-                    className="d-flex flex-row"
+                      className="d-flex flex-row"
                       key={user._id}
                       style={{
                         padding: "3px",
@@ -219,17 +241,17 @@ const GroupProfile = ({
                       onClick={() => handleAddUser(user)} // Add user when clicked
                     >
                       <img
-                      src={user.pic}
-                      alt="Profile"
-                      className="rounded-circle"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        objectFit: "cover",
-                        marginRight:'5px',
-                        marginTop:'2px'
-                      }}
-                    />
+                        src={user.pic}
+                        alt="Profile"
+                        className="rounded-circle"
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "cover",
+                          marginRight: "5px",
+                          marginTop: "2px",
+                        }}
+                      />
                       <div className="d-flex flex-column">
                         <div>{user.name}</div>
                         <div>{user.email}</div>

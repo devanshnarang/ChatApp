@@ -1,101 +1,116 @@
 import React, { useEffect, useState } from "react";
-import { ChatState } from "../../Context/ChatProvider";
+import { ChatState } from "../../Context/ChatProvider.js";
 import axios from "axios";
 
-const GroupChatModal = ({ showModal, closeModal }) => {
+const GroupChatModal = ({ closeModal }) => {
   const [groupChatName, setGroupChatName] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [searchResult, setSearchResult] = useState([]);
-  const { user, chats, setChats } = ChatState();
+  const { user, chats, setChats, showgroupchatModal, setShowgroupchatModal } =
+    ChatState();
 
   const handleSearch = async (query) => {
     setSearch(query);
     if (!query) {
-      console.log("NOT FOUND!!");
+      setSearchResult([]);
       return;
     }
+
     try {
       const config = {
         headers: {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.get(`/api/user?search=${search}`, config);
+      const { data } = await axios.get(`/api/user?search=${query}`, config);
       setSearchResult(data);
     } catch (error) {
-      alert("Error in creating a group, try again!! ");
+      alert("Error fetching users. Please try again!");
     }
   };
 
-  const handleSubmit = async() => {
-    try {
-        if(!groupChatName || !selectedUsers){
-            alert("Please fill all the fields!! ");
-            return;
-        }
-        try {
-            const config={
-                headers:{
-                    Authorization:`Bearer ${user.token}`,
-                },
-            };
+  const handleSubmit = async () => {
+    if (!groupChatName || selectedUsers.length === 0) {
+      alert("Please fill all the fields!");
+      return;
+    }
 
-            const {data} =await axios.post('/api/chat/group',{name:groupChatName,users:JSON.stringify(selectedUsers.map((u)=>u._id))},config);
-            setChats([data,...chats]);
-            closeModal();
-            return;
-        } catch (error) {
-            alert("Can't create group, try again!!");
-            return;
-        }
-    } catch (error) {}
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      };
+
+      const { data } = await axios.post(
+        "/api/chat/group",
+        {
+          name: groupChatName,
+          users: JSON.stringify(selectedUsers.map((u) => u._id)),
+        },
+        config
+      );
+
+      setChats([data, ...chats]);
+      closeModal();
+    } catch (error) {
+      alert("Failed to create group chat. Please try again!");
+    }
   };
 
-  const handleAddGroup = async (userToAdd) => {
-    if (selectedUsers?.includes(userToAdd)) {
-      alert("User already added!! ");
+  const handleAddGroup = (userToAdd) => {
+    if (selectedUsers.some((u) => u._id === userToAdd._id)) {
+      alert("User already added!");
       return;
     }
     setSelectedUsers([...selectedUsers, userToAdd]);
   };
 
-  const handleDelete=(userToRemove)=>{
-    setSelectedUsers(selectedUsers.filter((user) => user._id !== userToRemove._id));
-  }
+  const handleDelete = (userToRemove) => {
+    setSelectedUsers(
+      selectedUsers.filter((user) => user._id !== userToRemove._id)
+    );
+  };
 
-  useEffect(()=>{
-    if(!search){
-        setSearchResult([]);
+  useEffect(() => {
+    if (!search) {
+      setSearchResult([]);
     }
-  },[search])
+  }, [search]);
 
   return (
     <>
-      {showModal && (
+      {showgroupchatModal && (
         <>
           {/* Backdrop */}
           <div
             className="modal-backdrop fade show"
-            style={{ zIndex: 1040 }}
+            style={{ zIndex: 100 }}
           ></div>
           {/* Modal */}
           <div
             className={`modal fade show`}
             tabIndex="-1"
             role="dialog"
-            style={{ display: "block", zIndex: 1050 }}
+            style={{
+              display: "block",
+              zIndex: 101,
+            }}
             aria-labelledby="exampleModalCenterTitle"
             aria-hidden="false"
           >
             <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content">
+              <div
+                className="modal-content"
+              >
                 <div className="modal-header">
                   <h5 className="modal-title" id="exampleModalLongTitle">
                     Create Group
                   </h5>
                 </div>
                 <div className="modal-body d-flex flex-column align-self-stretch mb-2">
+                  {/* Selected Users */}
                   <div className="d-flex">
                     {selectedUsers?.map((u) => (
                       <div
@@ -109,7 +124,7 @@ const GroupChatModal = ({ showModal, closeModal }) => {
                             type="button"
                             className="close btn btn-outline-info"
                             aria-label="Close"
-                            onClick={()=>handleDelete(u)}
+                            onClick={() => handleDelete(u)}
                           >
                             <span aria-hidden="true">&times;</span>
                           </button>
@@ -117,6 +132,8 @@ const GroupChatModal = ({ showModal, closeModal }) => {
                       </div>
                     ))}
                   </div>
+
+                  {/* Input Fields */}
                   <input
                     placeholder="Group Name"
                     className="mb-2"

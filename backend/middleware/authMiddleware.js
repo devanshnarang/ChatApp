@@ -18,7 +18,6 @@ const protectMiddleware = async (req, res, next) => {
         });
       }
 
-      console.log("Token received:", token); // Log the token to verify
 
       // Verify the token using the JWT secret
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
