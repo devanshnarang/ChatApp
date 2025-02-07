@@ -4,10 +4,9 @@ import Profile from "./Profile.js";
 import GroupProfile from "./GroupProfile.js";
 import axios from "axios";
 import MessageArea from "./MessageArea.js";
-import io from "socket.io-client";
+import { encryptMessage } from "../EncryptionDecryption/EncrpytMessage.js";
+import { decryptMessage } from "../EncryptionDecryption/DecryptMessage.js";
 
-const ENDPOINT = "http://localhost:8080";
-var socket;
 let selectedChatCompare;
 
 const ChatArea = ({ fetchagain, setFetchagain }) => {
@@ -17,19 +16,43 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
     setSelectedChat,
     showgroupchatModal,
     setShowgroupchatModal,
+    messages,
+    setMessages,
+    socket
   } = ChatState();
+
   const [sender, setSender] = useState();
-  const [messages, setMessages] = useState([]);
   const [newmessage, setNewmessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [groupsender, setGroupSender] = useState([]);
-  const [socketConnected, setSocketConnected] = useState(false);
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [userToDisplay, setUserToDisplay] = useState();
   const [showgroupModal, setShowgroupModal] = useState(false);
-  const [readmsgs,setReadmsgs]=useState([]);
-  const [unreadmsgs,setUnreadmsgs]=useState([]);
+  const [readmsgs, setReadmsgs] = useState([]);
+  const [unreadmsgs, setUnreadmsgs] = useState([]);
+
+  // NEW: Responsive state for mobile screens.
+  // If the window width is less than 768px, consider it mobile.
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Define responsive back button size:
+  // Mobile: 35px, Tablet: 40px, Desktop: 50px.
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const isTablet = windowWidth >= 576 && windowWidth < 768;
+  const backButtonSize = isMobile ? "35px" : isTablet ? "40px" : "50px";
 
   const openModal = () => {
     setShowModal(true);
@@ -43,7 +66,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
   const getSender = (selectedChat) => {
     if (!selectedChat || !selectedChat.users) return;
     const a =
-      selectedChat.users[0]._id === user._id
+      selectedChat.users[0]._id === user.userExists._id
         ? selectedChat.users[0]
         : selectedChat.users[1];
     setSender(a);
@@ -62,10 +85,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.get(
-        `/api/message/${selectedChat._id}`,
-        config
-      );
+      const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
       const readMessages = data.filter((message) => message.isRead);
       const unreadMessages = data.filter((message) => !message.isRead);
       setReadmsgs(readMessages);
@@ -74,7 +94,6 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
       socket.emit("join chat", selectedChat._id);
     } catch (error) {
       console.log(error);
-      alert("Can't fetch messages, try again!!");
     }
   };
 
@@ -82,24 +101,61 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
     if (event.key === "Enter" && newmessage) {
       socket.emit("stop typing", selectedChat._id);
       try {
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        };
-        setNewmessage("");
-        const { data } = await axios.post(
-          "/api/message",
-          {
-            content: newmessage,
-            chatId: selectedChat._id,
-            isRead: false,
-          },
-          config
-        );
-        socket.emit("new message", data);
-        setMessages((prevMessages) => [...prevMessages, data]);
+        try {
+          const receiver =
+            selectedChat.users[0]._id === user.userExists._id
+              ? selectedChat.users[1]
+              : selectedChat.users[0];
+          const senderMy =
+            selectedChat.users[0]._id === user.userExists._id
+              ? selectedChat.users[0]
+              : selectedChat.users[1];
+          const res1 = await axios.post(
+            "/api/user/getting-public-key",
+            { id: senderMy._id },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${user.token}`,
+              },
+            }
+          );
+          const res2 = await axios.post(
+            "/api/user/getting-public-key",
+            { id: receiver._id },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${user.token}`,
+              },
+            }
+          );
+          console.log(user);
+          const encryptmsg1 = await encryptMessage(newmessage, res1.data.publicKey); // receiver
+          const encryptmsg2 = await encryptMessage(newmessage, res2.data.publicKey); // sender
+          const config = {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user.token}`,
+            },
+          };
+
+          setNewmessage("");
+          const { data } = await axios.post(
+            "/api/message",
+            {
+              tocontent: encryptmsg1,
+              fromcontent: encryptmsg2,
+              chatId: selectedChat._id,
+              isRead: false,
+            },
+            config
+          );
+          socket.emit("new message", data);
+          setMessages((prevMessages) => [...prevMessages, data]);
+        } catch (error) {
+          console.log("Couldn't Encrypt Messages");
+        }
       } catch (error) {
         console.log(error);
         alert("Try sending message again!!");
@@ -107,41 +163,8 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
     }
   };
 
-  // const markMessagesAsRead = async () => {
-  //   if (!selectedChat || !messages) return;
-    
-  //   try {
-  //     const config = {
-  //       headers: {
-  //         Authorization: `Bearer ${user.token}`,
-  //       },
-  //     };
-      
-  //     const updatedReadmsgs = messages?.filter(
-  //       (m) => !m.isRead && m.sender._id !== user.userExists._id
-  //     ) || [];
-      
-  
-  //     if(updatedReadmsgs.length>0){
-  //       await axios.patch(`/api/message/${selectedChat._id}/read`, {messageIds:updatedReadmsgs.map((msg)=>msg._id)}, config);
-  //       setMessages((prevMessages) =>
-  //         prevMessages.map((message) => ({
-  //           ...message,
-  //           isRead: true, 
-  //         }))
-  //       );
-  //     }
-  //     else return;
-  
-  //   } catch (error) {
-  //     console.log(error);
-  //     alert("Error marking messages as read!");
-  //   }
-  // };
-
   const handleMessage = (e) => {
     setNewmessage(e.target.value);
-    if (!socketConnected) return;
     if (!typing) {
       setTyping(true);
       socket.emit("typing", selectedChat._id);
@@ -159,86 +182,128 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
   };
 
   useEffect(() => {
-    if (!socketConnected || !selectedChat) return;
-    
-    const a = selectedChat 
-      ? (selectedChat.users[0]._id === user.userExists._id 
-         ? selectedChat.users[1]._id 
-         : selectedChat.users[0]._id) 
-      : null;
-    
-    // Emit message-read only when the chat is selected and socket is connected
-    if (a && socketConnected) {
-      socket.emit("message-read", {
-        loggedUser: user.userExists._id,
-        senderUser: a,
-        chatId: selectedChat._id,
-      });
+    if (!socket || !selectedChat) return;
+    if (selectedChat.isGroupChat) {
+      // Group chat logic (if any) can go here
     } else {
-      console.error("Socket is not initialized or connected");
-    }
-  
-    // Handle chat initialization
-    const initializeChat = async () => {
-      if (selectedChat.isGroupChat) {
-        getGroupSender(selectedChat);
+      const a = selectedChat
+        ? selectedChat.users[0]._id === user.userExists._id
+          ? selectedChat.users[1]._id
+          : selectedChat.users[0]._id
+        : null;
+      if (a && socket) {
+        socket.emit("message-read", {
+          loggedUser: user.userExists._id,
+          senderUser: a,
+          chatId: selectedChat._id,
+        });
       } else {
-        getSender(selectedChat);
-        const a =
-          selectedChat.users[0]._id === user.userExists._id
-            ? selectedChat.users[1]
-            : selectedChat.users[0];
-        setUserToDisplay(a);
-        fetchMessages();  // Fetch messages only after socket connection
+        console.error("Socket is not initialized or connected");
       }
-      selectedChatCompare = selectedChat;
-    };
-  
-    initializeChat();
-  }, [selectedChat, socketConnected]); // Ensure to re-run only when chat or socket connection changes
-  
 
-  // useEffect(() => {
-  //   markMessagesAsRead();
-  // }, [messages]);
-  
-  
+      const initializeChat = async () => {
+        if (selectedChat.isGroupChat) {
+          getGroupSender(selectedChat);
+          fetchMessages();
+        } else {
+          getSender(selectedChat);
+          const a =
+            selectedChat.users[0]._id === user.userExists._id
+              ? selectedChat.users[1]
+              : selectedChat.users[0];
+          setUserToDisplay(a);
+          fetchMessages();
+        }
+        selectedChatCompare = selectedChat;
+      };
+
+      initializeChat();
+    }
+  }, [selectedChat, socket]);
 
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("setup", user.userExists);
-    socket.on("connected", () => setSocketConnected(true));
-    socket.on("typing", () => setIsTyping(true));
-    socket.on("stop typing", () => setIsTyping(false));
-    socket.on("connect", () => {
-      console.log("NARANG CONNECTED");
+    setMessages((prevMessages) => {
+      const messageIds = new Set(prevMessages.map((m) => m._id));
+      const uniqueMessages = messages.filter((m) => !messageIds.has(m._id));
+
+      const a = selectedChat
+        ? selectedChat.users[0]._id === user.userExists._id
+          ? selectedChat.users[1]._id
+          : selectedChat.users[0]._id
+        : null;
+
+      if (a && socket) {
+        socket.emit("message-read", {
+          loggedUser: user.userExists._id,
+          senderUser: a,
+          chatId: selectedChat._id,
+        });
+      } else {
+        console.error("Socket is not initialized or connected");
+      }
+      if (uniqueMessages.length > 0) {
+        return [...prevMessages, ...uniqueMessages];
+      }
+      return prevMessages;
     });
-    socket.on("senderDoubleTick", (updatedMessages) => {
-      console.log("Received updated messages:", updatedMessages);
 
-      setMessages((prevMessages) => 
-          prevMessages.map((msg) => {
-              // Find the updated message and merge it with the previous message
-              const updatedMessage = updatedMessages.find((m) => m._id === msg._id);
-              if (updatedMessage) {
-                  return { ...msg, isRead: updatedMessage.isRead };
-              }
-              return msg;
-          })
-      );
-  });
-  }, []);
+    if (messages.length > 0) {
+      const readMessages = messages.filter((message) => message.isRead);
+      const unreadMessages = messages.filter((message) => !message.isRead);
+      setReadmsgs(readMessages);
+      setUnreadmsgs(unreadMessages);
+    }
+  }, [messages]);
 
   useEffect(() => {
-    socket.on("message received", (newMessageReceived) => {
+    const handleMessageReceived = (newMessageReceived) => {
       if (
         selectedChatCompare &&
         selectedChatCompare._id === newMessageReceived.chat._id
       ) {
-        setMessages((prevMessages) => [...prevMessages, newMessageReceived]);
+        console.log("handleMessageReceived");
+        setMessages((prevMessages) => {
+          const isDuplicate = prevMessages.some(
+            (message) => message._id === newMessageReceived._id
+          );
+          return isDuplicate ? prevMessages : [...prevMessages, newMessageReceived];
+        });
       }
-    });
-  }, [selectedChatCompare]);
+    };
+
+    const handleConnected = () => console.log("Connected");
+    const handleTyping = () => setIsTyping(true);
+    const handleStopTyping = () => setIsTyping(false);
+    const handleSenderDoubleTick = (updatedMessages) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => {
+          const updatedMessage = updatedMessages.find((m) => m._id === msg._id);
+          return updatedMessage ? { ...msg, isRead: updatedMessage.isRead } : msg;
+        })
+      );
+    };
+    const handleMessageDeleted = (messageId) => {
+      setMessages((prevMessages) =>
+        prevMessages.filter((msg) => msg._id !== messageId)
+      );
+    };
+
+    socket.on("connected", handleConnected);
+    socket.on("typing", handleTyping);
+    socket.on("stop typing", handleStopTyping);
+    socket.on("senderDoubleTick", handleSenderDoubleTick);
+    socket.on("message received", handleMessageReceived);
+    socket.on("messageDeleted", handleMessageDeleted);
+
+    return () => {
+      socket.off("connected", handleConnected);
+      socket.off("typing", handleTyping);
+      socket.off("stop typing", handleStopTyping);
+      socket.off("senderDoubleTick", handleSenderDoubleTick);
+      socket.off("message received", handleMessageReceived);
+      socket.off("messageDeleted", handleMessageDeleted);
+    };
+  }, [socket]);
 
   return (
     <>
@@ -260,36 +325,36 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             top: 0,
             zIndex: 1,
             boxSizing: "border-box",
-            height: "8vh",
+            height: "9vh",
             display: "flex",
             flexDirection: "row",
             justifyContent: "flex-start",
           }}
         >
           <button
-              style={{
-                backgroundColor: "wheat",
-                borderRadius: "50%",
-                width: "50px",
-                height: "50px",
-                marginLeft:'5px'
-              }}
-              onClick={() => {
-                setShowgroupchatModal(false);
-                setSelectedChat("");
-              }}
+            style={{
+              // backgroundColor: "wheat",
+              borderRadius: "50%",
+              width: isMobile ? "35px" : isTablet ? "40px" : "50px",
+              height: isMobile ? "35px" : isTablet ? "40px" : "50px",
+              marginLeft: "5px",
+            }}
+            onClick={() => {
+              setShowgroupchatModal(false);
+              setSelectedChat("");
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              className="bi bi-arrow-left-square-fill"
+              viewBox="0 0 16 16"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                className="bi bi-arrow-left-square-fill"
-                viewBox="0 0 16 16"
-              >
-                <path d="M16 14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zm-4.5-6.5H5.707l2.147-2.146a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708-.708L5.707 8.5H11.5a.5.5 0 0 0 0-1" />
-              </svg>
-            </button>
+              <path d="M16 14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zm-4.5-6.5H5.707l2.147-2.146a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708-.708L5.707 8.5H11.5a.5.5 0 0 0 0-1" />
+            </svg>
+          </button>
           <div
             style={{
               marginTop: "2px",
@@ -303,7 +368,6 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               justifyContent: "flex-start",
             }}
           >
-            
             <div
               style={{
                 marginRight: "5px",
@@ -353,7 +417,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             )}
           </div>
           {selectedChat?.isGroupChat ? (
-            <button onClick={openGroupModal} style={{margin:'10px'}}>
+            <button onClick={openGroupModal} style={{ margin: "10px" }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -377,45 +441,53 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           style={{
             flex: 1,
             overflowY: "auto",
-            width: "100%", // Ensures it occupies full width
-            paddingBottom: "70px", // Matches input box height
-            marginBottom: "25px", // Prevents overlap
-            height: "72vh",
+            width: "100%",
+            paddingBottom: "70px",
+            marginBottom: "25px",
+            height: "75vh",
             zIndex: 1,
             backgroundColor: "wheat",
           }}
         >
-          <MessageArea messages={messages} read={readmsgs} unread={unreadmsgs} />
+          <MessageArea
+            messages={messages}
+            setMessages={setMessages}
+            read={readmsgs}
+            unread={unreadmsgs}
+            socket={socket}
+          />
         </div>
 
         {/* Input Box */}
         <div
-          style={{
-            position: "sticky",
-            bottom: "0",
-            width: "100%",
-            zIndex: 2,
-            padding: "5px",
-            boxSizing: "border-box",
-            height: "6vh",
-            padding: "4px",
-            backgroundColor: "green",
-          }}
-        >
-          <input
-            style={{
-              height: "50px", // Matches design
-              width: "100%",
-              border: "none",
-              boxSizing: "border-box", // Prevents width overflow
-              marginBottom: "5px",
-            }}
-            placeholder="Enter the message..."
-            onKeyDown={sendMessage}
-            onChange={handleMessage}
-            value={newmessage}
-          />
-        </div>
+  style={{
+    position: "sticky",      // use sticky as required
+    bottom: 10,              // stick to the bottom of the parent container
+    left: 0,
+    width: "100%",
+    zIndex: 2,
+    backgroundColor: "green",
+    padding: "4px",         // keep padding as needed
+    boxSizing: "border-box",
+    marginTop: "5px"
+    // Do not set a fixed height here so that the container fits its content.
+  }}
+>
+  <input
+    style={{
+      height: "50px",        // the height of the input field
+      width: "100%",
+      border: "none",
+      boxSizing: "border-box"
+      // Removed any marginBottom that might push it out.
+    }}
+    placeholder="Enter the message..."
+    onKeyDown={sendMessage}
+    onChange={handleMessage}
+    value={newmessage}
+  />
+</div>
+
       </div>
 
       <GroupProfile
@@ -427,13 +499,14 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
         setFetchagain={setFetchagain}
         fetchMessages={fetchMessages}
       />
-      <Profile
-        showModal={showModal}
-        closeModal={closeModal}
-        user={userToDisplay}
-      />
+      <Profile showModal={showModal} closeModal={closeModal} user={userToDisplay} />
     </>
   );
 };
 
 export default ChatArea;
+//RSA Algorithm
+//DB-public_key,iv,salt
+//private(encrpyted)=recovery_key+private_key+iv+salt
+//recovery_key=uuidv4
+//to decrpyt private_key      backup_key+iv+salt

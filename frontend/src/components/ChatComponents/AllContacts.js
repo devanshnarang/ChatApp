@@ -2,23 +2,42 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { ChatState } from "../../Context/ChatProvider.js";
 import GroupChatModal from "./GroupChatModal.js";
-import { io } from "socket.io-client";
-
-const ENDPOINT = "http://localhost:8080";
-var socket;
 
 const AllContacts = ({ fetchagain }) => {
+  // Local state for the logged-in user (from localStorage)
   const [loggedUser, setLoggedUser] = useState();
-  const { user, selectedChat, setSelectedChat, chats, setChats,showgroupchatModal,setShowgroupchatModal } = ChatState();
+
+  // Destructure context values from ChatState
+  const { 
+    user, 
+    selectedChat, 
+    setSelectedChat, 
+    chats, 
+    setChats, 
+    showgroupchatModal, 
+    setShowgroupchatModal, 
+    socket, 
+    messages, 
+    setMessages 
+  } = ChatState();
+
+  // State to control the context menu for deletion
   const [showDiv, setShowDiv] = useState();
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [delChats, setDelChats] = useState([]);
   const [lastDelChat, setLastDelChat] = useState();
+  // State to hold unread counts (as an object keyed by chat._id)
   const [unreadCounts, setUnreadCounts] = useState({});
 
+  // Modal open/close handlers for group chat modal
   const openModal = () => setShowgroupchatModal(true);
   const closeModal = () => setShowgroupchatModal(false);
 
+  // --------------------------
+  // API CALLS AND UTILITY FUNCTIONS
+  // --------------------------
+
+  // Fetch chats from API
   const fetchChats = async () => {
     try {
       const config = {
@@ -26,8 +45,8 @@ const AllContacts = ({ fetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-
       const { data } = await axios.get("/api/chat", config);
+      // console.log(data.chats);
       setChats(data.chats);
       return;
     } catch (error) {
@@ -36,6 +55,7 @@ const AllContacts = ({ fetchagain }) => {
     }
   };
 
+  // Get the sender from a one-on-one chat using the loggedUser
   const getSender = (users) => {
     if (loggedUser) {
       return users[0]._id === loggedUser.userExists._id ? users[1] : users[0];
@@ -43,12 +63,15 @@ const AllContacts = ({ fetchagain }) => {
     return null;
   };
 
+  // Handle right-click (context menu) for chat deletion
   const handleRightClick = (e, chat) => {
     e.preventDefault();
+    // Use eventX and eventY as provided (consider using clientX/clientY if needed)
     setPos({ x: e.eventX, y: e.eventY });
     setShowDiv(chat._id);
   };
 
+  // Handle deletion of a chat from the UI and notify the server
   const handleDelete = (chat) => {
     const a = chat.users.find((u) => u._id === user.userExists._id);
     setDelChats([...delChats, chat]);
@@ -57,6 +80,7 @@ const AllContacts = ({ fetchagain }) => {
     socket.emit("deleteChat", chat._id);
   };
 
+  // Check if a chat has already been marked for deletion
   const found = (chat) => {
     const a = delChats.find((e) => e._id === chat._id);
     if (a) {
@@ -65,6 +89,7 @@ const AllContacts = ({ fetchagain }) => {
     return false;
   };
 
+  // For every chat, fetch messages and update unread counts
   const fetchMessagesForAllChats = async () => {
     try {
       const config = {
@@ -72,14 +97,17 @@ const AllContacts = ({ fetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-  
+
       for (const chat of chats) {
         const { data } = await axios.get(`/api/message/${chat._id}`, config);
-        const unreadMessages = data.filter((message) => 
-          !message.isRead && message.sender._id!==user.userExists._id
-      );
+        // First, update with the full array of unread messages (not used later)
+        const unreadMessages = data.filter(
+          (message) =>
+            !message.isRead && message.sender._id !== user.userExists._id
+        );
         setUnreadCounts((prev) => ({ ...prev, [chat._id]: unreadMessages }));
-  
+
+        // Then, update with just the count of unread messages
         setUnreadCounts((prev) => ({
           ...prev,
           [chat._id]: unreadMessages.length,
@@ -91,6 +119,8 @@ const AllContacts = ({ fetchagain }) => {
     }
   };
 
+  
+
   useEffect(() => {
     const x = localStorage.getItem("userInfo");
     if (x) {
@@ -101,6 +131,7 @@ const AllContacts = ({ fetchagain }) => {
 
   useEffect(() => {
     fetchChats();
+    fetchMessagesForAllChats();
   }, []);
 
   useEffect(() => {
@@ -110,12 +141,90 @@ const AllContacts = ({ fetchagain }) => {
   }, [chats, user.token]);
 
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("deleteChat", lastDelChat);
-    return () => {
-      socket.disconnect();
+    const handleupdateForloggedUser = async (updatedMessages) => {
+      try {
+        console.log("Calling in updateForloggedUser socket");
+        const newUnreadCounts = {};
+        console.log(chats);
+        for (const chat of chats) {
+          const config = {
+            headers: {
+              Authorization: `Bearer ${user.token}`,
+            },
+          };
+          // Fetch messages for the current chat
+          const { data } = await axios.get(`/api/message/${chat._id}`, config);
+          // Filter unread messages not sent by the logged-in user
+          const unreadMessages = data.filter(
+            (message) =>
+              !message.isRead && message.sender._id !== user.userExists._id
+          );
+          newUnreadCounts[chat._id] = unreadMessages.length;
+        }
+        setUnreadCounts(newUnreadCounts);
+      } catch (error) {
+        console.error("Error updating unread count:", error);
+      }
     };
-  }, []);
+
+    const handleupdateUnreadRedCount = async (newMessageReceived) => {
+      try {
+        console.log("updateUnreadRedCount event received:", newMessageReceived);
+        console.log(newMessageReceived.chat._id);
+        for (const chat of chats) {
+          console.log(chat._id);
+          if (
+            chat._id.toString() === newMessageReceived.chat._id.toString()
+          ) {
+            const config = {
+              headers: {
+                Authorization: `Bearer ${user.token}`,
+              },
+            };
+  
+            // Fetch the latest messages for this chat
+            const { data } = await axios.get(
+              `/api/message/${chat._id}`,
+              config
+            );
+  
+            // Filter unread messages not sent by the logged-in user
+            const unreadMessages = data.filter(
+              (message) =>
+                !message.isRead &&
+                message.sender._id.toString() !==
+                  user.userExists._id.toString()
+            );
+            console.log(
+              "Calling in updateUnreadRedCount socket, unread count:",
+              unreadMessages.length
+            );
+  
+            // Update the unread count for this chat
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [chat._id]: unreadMessages.length,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Error updating unread count:", error);
+      }
+    };
+    socket.emit("deleteChat", lastDelChat);
+
+    // Listen for unread count updates from server for a single new message
+    socket.on("updateUnreadRedCount",handleupdateUnreadRedCount );
+
+    // Listen for a global update for the logged-in user to refresh unread counts
+    socket.on("updateForloggedUser",handleupdateForloggedUser );
+
+   
+  }, [socket]);
+
+  // --------------------------
+  // JSX RETURN
+  // --------------------------
 
   return (
     <>
@@ -143,24 +252,23 @@ const AllContacts = ({ fetchagain }) => {
               padding: "10px",
             }}
           >
-            {/* Fixed Header with button */}
+            {/* Fixed Header */}
             <div
               className="d-flex justify-content-start"
               style={{
                 position: "sticky",
                 top: "0",
                 backgroundColor: "white",
-                zIndex: "3", // Positive z-index to ensure header is interactive
+                zIndex: "3", // Ensure header is interactive
                 padding: "10px",
                 boxSizing: "border-box",
                 height: "10vh",
               }}
             >
               <h3>My Chats</h3>
-              
             </div>
 
-            {/* Chat list */}
+            {/* Chat List */}
             <div
               className="d-flex flex-column"
               style={{
@@ -173,68 +281,69 @@ const AllContacts = ({ fetchagain }) => {
                 height: "75vh",
               }}
             >
-              {chats.map((chat) => {
-                if (!found(chat)) {
-                  return (
-                    <div
-                      key={chat._id}
-                      style={{
-                        overflowY: "auto", // Only the chat list should be scrollable
-                        backgroundColor: "greenyellow",
-                        color: "red",
-                        padding: "10px",
-                        margin: "5px 0",
-                        borderRadius: "5px",
-                        cursor: "pointer",
-                        boxSizing: "border-box",
-                        display:'flex',
-                        flexDirection:'row'
-                      }}
-                      onClick={() => {
-                        setSelectedChat(chat);
-                        setShowgroupchatModal(false);
-                      }}
-                      onContextMenu={(e) => handleRightClick(e, chat)}
-                    >
-                      <h5
+              {chats &&
+                chats.map((chat) => {
+                  if (!found(chat)) {
+                    return (
+                      <div
+                        key={chat._id}
                         style={{
-                          margin: "0px",
-                          height: "40px",
+                          overflowY: "auto", // Only the chat list should be scrollable
+                          backgroundColor: "greenyellow",
+                          color: "red",
+                          padding: "10px",
+                          margin: "5px 0",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          boxSizing: "border-box",
                           display: "flex",
                           flexDirection: "row",
-                          justifyContent: "flex-start",
-                          alignItems: "center",
-                          fontWeight: "bold",
-                          fontSize: "x-large",
                         }}
+                        onClick={() => {
+                          setSelectedChat(chat);
+                          // setShowgroupchatModal(false);
+                        }}
+                        onContextMenu={(e) => handleRightClick(e, chat)}
                       >
-                        {(!chat.isGroupChat && getSender(chat.users)?.pic) ||
-                        chat.isGroupChat ? (
-                          <img
-                            src={
-                              chat.isGroupChat
-                                ? "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg" // Placeholder for group chats
-                                : getSender(chat.users)?.pic
-                            }
-                            alt={
-                              chat.isGroupChat
-                                ? chat.chatName
-                                : getSender(chat.users)?.name
-                            }
-                            style={{
-                              borderRadius: "50%",
-                              height: "50px",
-                              width: "50px",
-                              marginRight: "10px",
-                            }}
-                          />
-                        ) : null}
+                        <h5
+                          style={{
+                            margin: "0px",
+                            height: "40px",
+                            display: "flex",
+                            flexDirection: "row",
+                            justifyContent: "flex-start",
+                            alignItems: "center",
+                            fontWeight: "bold",
+                            fontSize: "x-large",
+                          }}
+                        >
+                          {(!chat.isGroupChat && getSender(chat.users)?.pic) ||
+                          chat.isGroupChat ? (
+                            <img
+                              src={
+                                chat.isGroupChat
+                                  ? "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg" // Placeholder for group chats
+                                  : getSender(chat.users)?.pic
+                              }
+                              alt={
+                                chat.isGroupChat
+                                  ? chat.chatName
+                                  : getSender(chat.users)?.name
+                              }
+                              style={{
+                                borderRadius: "50%",
+                                height: "50px",
+                                width: "50px",
+                                marginRight: "10px",
+                              }}
+                            />
+                          ) : null}
 
-                        {!chat.isGroupChat
-                          ? getSender(chat.users)?.name
-                          : chat.chatName}
-                      </h5>
-                    {unreadCounts[chat._id] > 0 && (
+                          {!chat.isGroupChat
+                            ? getSender(chat.users)?.name
+                            : chat.chatName}
+                        </h5>
+                        {unreadCounts[chat._id] > 0 && (
                           <div
                             style={{
                               backgroundColor: "red",
@@ -242,55 +351,55 @@ const AllContacts = ({ fetchagain }) => {
                               borderRadius: "50%",
                               padding: "5px",
                               marginLeft: "10px",
-                              width:'40px',
-                              height:'40px',
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center'
+                              width: "40px",
+                              height: "40px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
                             {unreadCounts[chat._id]}
                           </div>
                         )}
 
-                      {showDiv === chat._id && (
-                        <div
-                          style={{
-                            position: "absolute", // Ensure context menu appears at correct position
-                            top: pos.y,
-                            left: pos.x,
-                            backgroundColor: "wheat",
-                            display: "flex",
-                            flexDirection: "column",
-                            padding: "10px",
-                            borderRadius: "5px",
-                            boxShadow: "0px 4px 8px rgba(0,0,0,0.1)",
-                          }}
-                        >
-                          <span>
-                            Are you sure you want to delete this chat?
-                          </span>
+                        {showDiv === chat._id && (
                           <div
-                            style={{ display: "flex", flexDirection: "row" }}
+                            style={{
+                              position: "absolute", // Context menu
+                              top: pos.y,
+                              left: pos.x,
+                              backgroundColor: "wheat",
+                              display: "flex",
+                              flexDirection: "column",
+                              padding: "10px",
+                              borderRadius: "5px",
+                              boxShadow: "0px 4px 8px rgba(0,0,0,0.1)",
+                            }}
                           >
-                            <button onClick={() => handleDelete(chat)}>
-                              YES
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowDiv(null); // Close the context menu
-                              }}
+                            <span>
+                              Are you sure you want to delete this chat?
+                            </span>
+                            <div
+                              style={{ display: "flex", flexDirection: "row" }}
                             >
-                              NO
-                            </button>
+                              <button onClick={() => handleDelete(chat)}>
+                                YES
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowDiv(null); // Close the context menu
+                                }}
+                              >
+                                NO
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return null; // Return null if the chat is found
-              })}
+                        )}
+                      </div>
+                    );
+                  }
+                  return null; // If chat is marked for deletion, return null
+                })}
             </div>
           </div>
         )}

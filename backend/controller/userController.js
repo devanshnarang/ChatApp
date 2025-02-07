@@ -5,10 +5,11 @@ import { comparePassword, hashPassword } from "../helper/userHelper.js";
 
 export const registrationController = async(req,res)=>{
     try {
-        const {name,email,password,pic}=req.body;
+        const {name,email,password,pic,publicKey}=req.body;
         if(!name)return res.send({error:'Name is undefined'});
         if(!email)return res.send({error:'Email is undefined'});
         if(!password)return res.send({error:'Password is undefined'});
+        console.log(pic);
         const userExists=await userModel.findOne({email});
         if(userExists){
             return res.status(200).send({
@@ -19,7 +20,7 @@ export const registrationController = async(req,res)=>{
         }
         else{
             const hashedPassword= await hashPassword(password);
-            const newUser= await userModel({name,email,password:hashedPassword,pic}).save();
+            const newUser= await userModel({name,email,password:hashedPassword,pic,publicKey}).save();
             const tempToken=generateToken(newUser);
             return res.status(201).send({
                 success:true,
@@ -79,5 +80,64 @@ export const allUserController = async(req,res)=>{
         res.send(users);
     } catch (error) {
         console.log(error.message);
+    }
+}
+
+
+export const handleBackupController=async(req,res)=>{
+    try {
+
+        const {privateKey,salt,iv} = req.body;
+        await userModel.updateOne({_id:req.user._id},{privateKey,salt,iv});
+
+        res.status(201).send({
+            success:true,
+            message:'back up is successfully',
+        })
+        
+    } catch (error) {
+         res.status(500).send({
+            success:true,
+            message:'not backup',
+            error,
+        })
+    }
+}
+
+export const savePublicKeyController=async(req,res)=>{
+    try {
+        await userModel.updateOne({_id:req.user._id},{publicKey:req.body.publicKey});
+        res.status(201).send({
+            success:true,
+            message:'new public key saved ..',
+        })
+        
+    } catch (error) {
+        res.status(500).send({
+            success:true,
+            message:'new public key is not created',
+            error,
+        })
+    }
+}
+
+export const getPublicKeyController=async(req,res)=>{
+    try {
+
+        const user=await userModel.findOne({_id:req.body.id});
+        res.status(201).send({
+            success:true,
+            message:'public key fetched',
+            publicKey:user.publicKey,
+        })
+
+        
+    } catch (error) {
+        res.status(500).send({
+            success:true,
+            message:'public key can not fetched server issue',
+            error,
+        })
+
     }
 }

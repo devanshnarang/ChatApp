@@ -1,169 +1,198 @@
-import React, { useState,useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ScrollableFeed from "react-scrollable-feed";
 import { ChatState } from "../../Context/ChatProvider.js";
-import io from "socket.io-client";
-import axios from 'axios'
+import { decryptMessage } from "../EncryptionDecryption/DecryptMessage.js";
 
-const ENDPOINT = "http://localhost:8080";
-var socket;
-let selectedChatCompare;
-
-const MessageArea = ({ messages,read,unread }) => {
-  const { user,selectedChat } = ChatState();
+const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
+  const { user } = ChatState();
   const [showDiv, setShowDiv] = useState(null);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
   const [delmsg, setDelmsg] = useState([]);
-  const [lastDelMsg,setLastDelMsg]=useState();
+  const messageRefs = useRef({});
+  const [decryptedMessages, setDecryptedMessages] = useState({});
 
-  const isSameSender = (messages, m, i, userId) => {
-    return (
-      i < messages.length - 1 &&
-      messages[i + 1].sender._id === m.sender._id &&
-      messages[i].sender._id !== userId
-    );
-  };
+  // State to control vertical position of confirmation modal
+  const [modalVerticalPosition, setModalVerticalPosition] = useState("top");
 
-  const isLastMessage = (messages, i, userId) => {
-    return (
-      i === messages.length - 1 &&
-      messages[messages.length - 1].sender._id !== userId &&
-      messages[messages.length - 1].sender._id
-    );
-  };
+  // Ref for the scrollable container
+  const feedContainerRef = useRef(null);
 
- 
-  
-  const handleRightClick = (e, mid) => {
-    e.preventDefault();
-    setPos({ x: e.clientX, y: e.clientY });
-    setShowDiv(mid);
-  };
-
-  const handleDelete = async (m) => {
-    console.log(m);
-    console.log(user.userExists._id);
-    if(user.userExists._id!==m.sender._id){
-      setShowDiv(false);
-      alert("Not authorised to delete this msg!!");
-      return;
+  // Decrypt message function
+  const decryptMessageContent = async (m) => {
+    try {
+      let decrypted;
+      try {
+        if (m.sender._id === user.userExists._id) {
+          decrypted = await decryptMessage(
+            m.tocontent,
+            localStorage.getItem("privateKey")
+          );
+        } else {
+          decrypted = await decryptMessage(
+            m.fromcontent,
+            localStorage.getItem("privateKey")
+          );
+        }
+      } catch (error) {
+        decrypted = "";
+      }
+      setDecryptedMessages((prev) => ({
+        ...prev,
+        [m._id]: decrypted || "",
+      }));
+    } catch (error) {
+      console.error("Error decrypting message:", error);
     }
-    setDelmsg([...delmsg,m._id]);
-    setShowDiv(false);
-    setLastDelMsg(m._id);
-    socket.emit("deleteMessage", m._id);
   };
-  
-
-
-  const isRead = (m) =>{
-    if(read.length===0 || !read){
-      return false;
-    }
-    const a = messages.find((msg)=>msg._id===m._id);
-    if(a)return true;
-    console.log(m._id,a);
-    return false;
-  }
-
-  const notDel=(m)=>{
-    const user=(delmsg.find((mId)=>mId===m));
-    if(!user)return true;
-    return false;
-  }
 
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("deleteMessage", lastDelMsg);
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    messages.forEach((m) => {
+      decryptMessageContent(m);
+    });
+  }, [messages, user.userExists.privateKey]);
+
+  // Automatically scroll to bottom when messages update
+  useEffect(() => {
+    if (feedContainerRef.current) {
+      feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const isRead = (m) => read.some((msg) => msg._id === m._id);
+  const notDel = (m) => !delmsg.includes(m._id);
+
+  const handleRightClick = (e, m) => {
+    e.preventDefault();
+    setShowDiv(m._id);
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (window.innerHeight - rect.bottom < 120) {
+      setModalVerticalPosition("bottom");
+    } else {
+      setModalVerticalPosition("top");
+    }
+  };
+
+  const handleDelete = (m) => {
+    if (user.userExists._id !== m.sender._id) {
+      alert("Not authorized to delete this message!");
+      return;
+    }
+    setDelmsg((prev) => [...prev, m._id]);
+    setShowDiv(null);
+    socket.emit("deleteMessage", m._id);
+  };
 
   return (
-    <ScrollableFeed>
-      {messages &&
-        messages.map((m, i) => {
-          const isCurrentSenderLoggedInUser =
-            m.sender._id === user.userExists._id;
-          const shouldDisplayAvatar =
-            (!isSameSender(messages, m, i, user.userExists._id) &&
-              !isCurrentSenderLoggedInUser) ||
-            isLastMessage(messages, i, user.userExists._id);
+    // The outer div now takes 100% height of its parent.
+    <div ref={feedContainerRef} style={{ height: "100%", overflowX: "hidden",marginBottom:"50px" }}>
+      <ScrollableFeed>
+        {messages &&
+          messages.map((m) => {
+            const isCurrentSender = m.sender._id === user.userExists._id;
+            const messageContent = decryptedMessages[m._id] || "";
 
-          return (
-            <div
-              key={m._id}
-              style={{
-                display: "flex",
-                justifyContent: isCurrentSenderLoggedInUser
-                  ? "flex-end"
-                  : "flex-start",
-                marginTop: "5px",
-                marginBottom: "5px",
-                marginRight: "5px",
-                zIndex:1,
-              }}
-            >
-              {shouldDisplayAvatar && notDel(m._id) && (
-                <img
-                  src={m.sender.pic}
-                  className="rounded-circle"
-                  style={{ width: "50px", marginRight: "5px" }}
-                  alt="Avatar"
-                />
-              )}
-              {showDiv == m._id && (
-                <div
-                  style={{
-                    top: pos.x,
-                    left: pos.y,
-                    backgroundColor: "wheat",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <span>Are you sure want to delete this message?</span>
-                  <div style={{ display: "flex", flexDirection: "row" }}>
-                    <button onClick={()=>handleDelete(m)}>YES</button>
-                    <button
-                      onClick={() => {
-                        setShowDiv(false);
-                      }}
-                    >
-                      NO
-                    </button>
-                  </div>
-                </div>
-              )}
-              {notDel(m._id) && (
-                <span
-                  style={{
-                    backgroundColor: isCurrentSenderLoggedInUser
-                      ? "#BEE3F8"
-                      : "#B9F5D0",
-                    borderRadius: "20px",
-                    padding: "5px 15px",
-                    maxWidth: "75%",
-                    marginLeft: `${
-                      !isCurrentSenderLoggedInUser && !shouldDisplayAvatar
-                        ? "55px"
-                        : "0px"
-                    }`,
-                    display:'flex',
-                    flexDirection:'row'
-                  }}
-                  onContextMenu={(e) => handleRightClick(e, m._id)}
-                >
-                  {m.content}
-                  {
-                    isCurrentSenderLoggedInUser && (isRead(m)?(<div><i className="fa-solid fa-check-double" style={{color:'black',fontSize:'20px'}}></i></div>):(<div><i className="fa-solid fa-check" style={{color:'black',fontSize:'20px'}}></i></div>))
-                  }
-                </span>
-              )}
-            </div>
-          );
-        })}
-    </ScrollableFeed>
+            return (
+              <div
+                key={m._id}
+                style={{
+                  display: "flex",
+                  justifyContent: isCurrentSender ? "flex-end" : "flex-start",
+                  margin: "5px",
+                  position: "relative",
+                }}
+              >
+                {messageContent && (
+                  <span
+                    ref={(el) => (messageRefs.current[m._id] = el)}
+                    style={{
+                      backgroundColor: isCurrentSender ? "#BEE3F8" : "#B9F5D0",
+                      borderRadius: "12px",
+                      padding: "10px 15px",
+                      paddingRight: "40px", // Reserve space for tick icons
+                      maxWidth: "60%",
+                      wordBreak: "break-word",
+                      display: "inline-block",
+                      position: "relative",
+                      cursor: "pointer",
+                    }}
+                    onContextMenu={(e) => handleRightClick(e, m)}
+                  >
+                    {messageContent}
+                    {isCurrentSender && (
+                      <i
+                        className={
+                          isRead(m) ? "fa-solid fa-check-double" : "fa-solid fa-check"
+                        }
+                        style={{
+                          color: "black",
+                          fontSize: "16px",
+                          position: "absolute",
+                          bottom: "5px",
+                          right: "10px",
+                        }}
+                      ></i>
+                    )}
+                    {showDiv === m._id && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          ...(modalVerticalPosition === "top"
+                            ? { top: "0" }
+                            : { bottom: "0" }),
+                          left: "-220px",
+                          backgroundColor: "white",
+                          padding: "10px",
+                          borderRadius: "8px",
+                          boxShadow: "0px 4px 8px rgba(0,0,0,0.2)",
+                          zIndex: 1000,
+                          width: "200px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            marginBottom: "8px",
+                            fontSize: "14px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Delete this message?
+                        </span>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          <button
+                            onClick={() => handleDelete(m)}
+                            style={{
+                              backgroundColor: "#ff4d4d",
+                              color: "white",
+                              border: "none",
+                              padding: "5px 10px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setShowDiv(null)}
+                            style={{
+                              backgroundColor: "#ccc",
+                              color: "black",
+                              border: "none",
+                              padding: "5px 10px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+      </ScrollableFeed>
+    </div>
   );
 };
 

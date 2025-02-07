@@ -1,33 +1,83 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import io from "socket.io-client";
+
+const ENDPOINT = window.location.hostname.includes("devtunnels.ms")
+  ? "wss://cggcm516-8080.inc1.devtunnels.ms"
+  : "wss://localhost:8080";
+
+// const ENDPOINT = "http://localhost:8080";
 
 const ChatContext = createContext();
 
-const ChatProvider = ({children})=>{
-    const [user,setUser]=useState();
-    const [selectedChat,setSelectedChat]=useState();
-    const navigate=useNavigate();
-    const [chats,setChats]=useState([]);
-      const [showgroupchatModal, setShowgroupchatModal] = useState(false);
-    
+const ChatProvider = ({ children }) => {
+  const [user, setUser] = useState();
+  const [selectedChat, setSelectedChat] = useState(null);
+  const navigate = useNavigate();
+  const [chats, setChats] = useState([]);
+  const [showgroupchatModal, setShowgroupchatModal] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [socket, setSocket] = useState(null);
 
-    useEffect(()=>{
-        const userInfo=JSON.parse(localStorage.getItem("userInfo"));
-        setUser(userInfo);
-        if(!userInfo){
-            navigate('/');
-        }
-    },[navigate]);
+  useEffect(() => {
+    const newSocket = io(ENDPOINT,{ transports: ['websocket'] });
+    setSocket(newSocket);
+  
+    // Clean up on unmount
+    return () => newSocket.disconnect();
+  }, []);
+  
 
-    return (
-        <ChatContext.Provider value={{user,setUser,selectedChat,setSelectedChat,chats,setChats,showgroupchatModal,setShowgroupchatModal}}>
-            {children}
-        </ChatContext.Provider>
-    )
-}
+  useEffect(() => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    setUser(userInfo);
+    if (!userInfo) {
+      navigate('/');
+    }
+  }, [navigate]);
 
-export const ChatState=()=>{
-    return useContext(ChatContext);
-}
+
+
+  useEffect(() => {
+    // Only create a new socket if there is a user and no active socket.
+    if (user && (!socket || socket.disconnected)) {
+      const newSocket = io(ENDPOINT,{ transports: ['websocket'] });
+      setSocket(newSocket);
+  
+      newSocket.on("connect", () => {
+        // console.log("Socket connected:", newSocket.id);
+        newSocket.emit("setup", user.userExists);
+        // console.log("Setup emitted with", user.userExists);
+      });
+  
+      return () => newSocket.disconnect();
+    }
+    // We only need to run this effect when the user changes.
+    // Do not include `socket` if that causes an infinite loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  return (
+    <ChatContext.Provider value={{
+      user,
+      setUser,
+      selectedChat,
+      setSelectedChat,
+      chats,
+      setChats,
+      showgroupchatModal,
+      setShowgroupchatModal,
+      messages,
+      setMessages,
+      socket
+    }}>
+      {children}
+    </ChatContext.Provider>
+  );
+};
+
+export const ChatState = () => {
+  return useContext(ChatContext);
+};
 
 export default ChatProvider;

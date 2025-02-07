@@ -18,20 +18,18 @@ const encryptMessage = (message,secret_key)=>{
 }
 
 export const sendmessageController = async (req, res) => {
-  const { content, chatId } = req.body;
-  if (!content || !chatId) {
+  const {tocontent,fromcontent, chatId } = req.body;
+  if (!tocontent || !chatId) {
     return res.status(400).send({
       success: false,
       message: "Try sending message again!!",
     });
   }
 
-  // Encrypt the content before storing it in the database
-  const encryptedMessage = encryptMessage(content, SECRET_KEY);
-
   const newMessage = {
     sender: req.user._id,
-    content: encryptedMessage, // store encrypted content
+    tocontent: tocontent,
+    fromcontent: fromcontent,
     chat: chatId,
   };
 
@@ -49,12 +47,6 @@ export const sendmessageController = async (req, res) => {
       path: 'chat.users',
       select: "name pic email",
     });
-
-    // Decrypt the message content before sending it to the frontend
-    const decryptedContent = decryptMessage(message.content, SECRET_KEY);
-    
-    // Update the content field to send the decrypted message
-    message.content = decryptedContent;
 
     // Update the chat with the latest message
     await ChatModel.findByIdAndUpdate(chatId, {
@@ -78,7 +70,8 @@ export const allMessagesController = async(req,res)=>{
         const messages = await messageModel.find({chat:req.params.chatId}).populate("sender","name pic email").populate("chat");
         const decryptedMessages = messages.map((message) => ({
           ...message.toObject(),
-          content: decryptMessage(message.content, SECRET_KEY),
+          tocontent: message.tocontent,
+          fromcontent: message.fromcontent
         }));
         res.json(decryptedMessages);
     } catch (error) {
@@ -89,7 +82,7 @@ export const allMessagesController = async(req,res)=>{
     }
 }
 
-const deleteMessageController = async(req,res)=>{
+export const deleteMessageController = async(req,res)=>{
   try {
     const {messageId,userId}=req.params;
     const message = await messageModel.findById(messageId);

@@ -35,7 +35,7 @@ const Homepage = () => {
                 </button>
               </div>
               <div>
-                {isLogin ? <Login/> : <Signup/>}
+                {isLogin ? <Login isLogin={isLogin} setIsLogin={setIsLogin}/> : <Signup isLogin={isLogin} setIsLogin={setIsLogin}/>}
               </div>
             </div>
           </div>

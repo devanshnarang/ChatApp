@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import axios from 'axios';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { generateKeyPair } from "../EncryptionDecryption/GenerateKey.js";
 
-const Signup = () => {
+const Signup = ({ isLogin, setIsLogin }) => {
   const [show, setShow] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmpassword, setConfirmpassword] = useState("");
   const [pic, setPic] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
 
   const postDetails = (pics) => {
@@ -18,10 +20,11 @@ const Signup = () => {
     }
   
     if (pics.type === "image/jpeg" || pics.type === "image/png") {
+      setIsUploading(true);  // Start upload, disable submission if needed
       const data = new FormData();
       data.append("file", pics);
-      data.append("upload_preset", "chatap"); // Replace with your actual upload preset
-      data.append("cloud_name", "dmwwxqq1l"); // Replace with your Cloudinary cloud name
+      data.append("upload_preset", "chatap"); // Your upload preset
+      data.append("cloud_name", "dmwwxqq1l"); // Your Cloudinary cloud name
   
       fetch("https://api.cloudinary.com/v1_1/dmwwxqq1l/image/upload", {
         method: "POST",
@@ -30,56 +33,72 @@ const Signup = () => {
         .then((res) => res.json())
         .then((data) => {
           if (data.secure_url) {
-            setPic(data.secure_url); // Use secure_url instead of url
+            setPic(data.secure_url); // Set the image URL
           } else {
             alert("Image upload failed. Check the response data.");
             console.log("Response from Cloudinary:", data);
           }
+          setIsUploading(false); // Upload finished
         })
         .catch((err) => {
           console.error("Error uploading image:", err);
+          setIsUploading(false); // Even on error, stop the uploading state
         });
     } else {
       alert("Invalid image type. Please upload a JPEG or PNG image.");
     }
   };
 
-  const submitHandler=async()=>{
-    if(!name || !email || !password || !pic){
-      alert("Please fill all the details");
-      return;
-    }
-    if(password!==confirmpassword){
+  const submitHandler = async () => {
+    if (password !== confirmpassword) {
       alert("Password and Confirm Password fields don't match!");
       return;
     }
+    
+    // Prevent submission if the image is still uploading
+    if (isUploading) {
+      alert("Please wait until the image upload is complete.");
+      return;
+    }
+    
+    // Optionally, check if pic is null and alert the user
+    if (!pic) {
+      alert("Please upload a profile picture.");
+      return;
+    }
+    
     try {
+      const { publicKey, privateKey } = await generateKeyPair();
+      localStorage.setItem("privateKey", privateKey);
       const config = {
-        headers:{
-          "Content-type":"application/json",
+        headers: {
+          "Content-type": "application/json",
         },
       };
-      const {data} = await axios.post("/api/user/register",{name,email,password,pic},config);
-      navigate("/login");
+      await axios.post(
+        "/api/user/register",
+        { name, email, password, pic, publicKey },
+        config
+      );
+      setIsLogin(!isLogin);
     } catch (error) {
-      console.log("An error occured");
-      console.log(error.message);
+      console.error("An error occurred:", error.message);
     }
-  }
-  
+  };
 
   const handleClick = (e) => {
-    e.preventDefault(); // Prevent the button from submitting the form
+    e.preventDefault();
     setShow(!show);
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
   };
 
   return (
     <div>
       <form onSubmit={handleSubmit}>
+        {/* Name Input */}
         <div className="mb-3">
           <label htmlFor="signupName" className="form-label">
             Name
@@ -93,6 +112,7 @@ const Signup = () => {
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        {/* Email Input */}
         <div className="mb-3">
           <label htmlFor="signupEmail" className="form-label">
             Email address
@@ -106,6 +126,7 @@ const Signup = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
+        {/* Password Input */}
         <div className="mb-3 d-flex align-items-center">
           <label htmlFor="signupPassword" className="form-label">
             Password
@@ -118,8 +139,8 @@ const Signup = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          
         </div>
+        {/* Confirm Password Input */}
         <div className="mb-3 d-flex align-items-center">
           <label htmlFor="confirmPassword" className="form-label">
             Confirm Password
@@ -136,6 +157,7 @@ const Signup = () => {
             {show ? "Hide" : "Show"}
           </button>
         </div>
+        {/* Profile Pic Input */}
         <div className="mb-3">
           <label htmlFor="profilePic" className="form-label">
             Profile Pic
@@ -147,8 +169,14 @@ const Signup = () => {
             onChange={(e) => postDetails(e.target.files[0])}
           />
         </div>
-        <button type="submit" className="btn btn-primary w-100" onClick={submitHandler}>
-          Signup
+        {/* Signup Button */}
+        <button
+          type="submit"
+          className="btn btn-primary w-100"
+          onClick={submitHandler}
+          disabled={isUploading}  // Disable button during upload
+        >
+          {isUploading ? "Uploading..." : "Signup"}
         </button>
       </form>
     </div>

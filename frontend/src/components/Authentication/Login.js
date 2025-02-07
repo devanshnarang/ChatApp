@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import axios from 'axios';
 import {useNavigate} from 'react-router-dom';
+import {ChatState} from "../../Context/ChatProvider.js";
 
-const Login = () => {
+const Login = ({isLogin,setIsLogin}) => {
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const {setUser} = ChatState();
 
 
   const submitHandler=async()=>{
@@ -21,9 +23,9 @@ const Login = () => {
         },
       };
       const {data} = await axios.post("/api/user/login",{email,password},config);
-      alert("Login Successfully");
+      setUser(data);
       localStorage.setItem('userInfo',JSON.stringify(data));
-      navigate("/chats");
+      navigate("/backup");
     } catch (error) {
       console.log("An error occured");
       console.log(error.message);
