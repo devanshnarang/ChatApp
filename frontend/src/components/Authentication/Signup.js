@@ -76,7 +76,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
         },
       };
       await axios.post(
-        "/api/user/register",
+        "https://chatapp-5os8.onrender.com/api/user/register",
         { name, email, password, pic, publicKey },
         config
       );

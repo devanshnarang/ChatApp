@@ -115,7 +115,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
     );
     try {
       const res = await axios.post(
-        "/api/user/handle-backup",
+        "https://chatapp-5os8.onrender.com/api/user/handle-backup",
         { privateKey, salt, iv },
         {
           headers: {
@@ -148,7 +148,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
   const fetchChats = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get("/api/chat", config);
+      const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
       setChats(data.chats);
       return;
     } catch (error) {
@@ -166,7 +166,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`/api/user?search=${d}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${d}`, config);
       const filteredResults = data.filter((u) => u._id !== user._id);
       setSearchResult(filteredResults);
       setFetchagain(!fetchagain);
@@ -185,7 +185,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`/api/user?search=${search}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${search}`, config);
       const filteredResults = data.filter((u) => u._id !== user._id);
       setSearchResult(filteredResults);
       setFetchagain(!fetchagain);
@@ -204,7 +204,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.post("/api/chat", { userId }, config);
+      const { data } = await axios.post("https://chatapp-5os8.onrender.com/api/chat", { userId }, config);
       setSearch("");
       setSelectedChat(data);
       socket.emit("fetchRecentChats", user.userExists._id);

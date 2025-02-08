@@ -22,7 +22,7 @@ const Login = ({isLogin,setIsLogin}) => {
           "Content-type":"application/json",
         },
       };
-      const {data} = await axios.post("/api/user/login",{email,password},config);
+      const {data} = await axios.post("https://chatapp-5os8.onrender.com/api/user/login",{email,password},config);
       setUser(data);
       localStorage.setItem('userInfo',JSON.stringify(data));
       navigate("/backup");

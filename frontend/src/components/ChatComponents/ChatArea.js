@@ -85,7 +85,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${selectedChat._id}`, config);
       const readMessages = data.filter((message) => message.isRead);
       const unreadMessages = data.filter((message) => !message.isRead);
       setReadmsgs(readMessages);
@@ -111,7 +111,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               ? selectedChat.users[0]
               : selectedChat.users[1];
           const res1 = await axios.post(
-            "/api/user/getting-public-key",
+            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
             { id: senderMy._id },
             {
               headers: {
@@ -121,7 +121,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             }
           );
           const res2 = await axios.post(
-            "/api/user/getting-public-key",
+            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
             { id: receiver._id },
             {
               headers: {
@@ -142,7 +142,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
 
           setNewmessage("");
           const { data } = await axios.post(
-            "/api/message",
+            "https://chatapp-5os8.onrender.com/api/message",
             {
               tocontent: encryptmsg1,
               fromcontent: encryptmsg2,

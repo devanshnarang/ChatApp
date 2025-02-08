@@ -2,9 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from "socket.io-client";
 
-const ENDPOINT = window.location.hostname.includes("devtunnels.ms")
-  ? "wss://cggcm516-8080.inc1.devtunnels.ms"
-  : "wss://localhost:8080";
+const ENDPOINT = "https://chatapp-5os8.onrender.com";
 
 // const ENDPOINT = "http://localhost:8080";
 
