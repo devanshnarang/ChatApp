@@ -41,7 +41,6 @@ const server = app.listen(8080, () => {
 });
 
 
-
 const io = new Server(server, {
     pingTimeout: 60000,
     cors: {
@@ -214,24 +213,43 @@ io.on("connection", (socket) => {
     // Fetch recent chats and send them to the requester
     socket.on("fetchRecentChats", async (userId) => {
         try {
-            const updatedChats = await ChatModel.find({
-                users: { $elemMatch: { $eq: userId } }
-            })
-                .populate("users", "-password")
-                .populate("groupAdmin", "-password")
-                .populate("latestMessage")
-                .sort({ updatedAt: -1 });
-
-            const populatedChats = await userModel.populate(updatedChats, {
-                path: "latestMessage.sender",
-                select: "name pic email",
+          // 1. Query chats that include the given userId
+          const updatedChats = await ChatModel.find({
+            users: { $elemMatch: { $eq: userId } }
+          })
+            .populate("users", "-password")
+            .populate("groupAdmin", "-password")
+            .populate("latestMessage")
+            .sort({ updatedAt: -1 });
+      
+          // 2. Populate the latestMessage sender details
+          const populatedChats = await userModel.populate(updatedChats, {
+            path: "latestMessage.sender",
+            select: "name pic email",
+          });
+      
+          // 3. Collect all unique user IDs from the fetched chats.
+          const uniqueUserIds = new Set();
+          populatedChats.forEach(chat => {
+            chat.users.forEach(user => {
+              uniqueUserIds.add(user._id.toString());
             });
-            socket.emit("chatupdated", populatedChats);
+          });
+      
+          // 4. Iterate over each unique user id, get their socket id from the onlineUsers map,
+          //    and emit the "chatupdated" event if the user is online.
+          uniqueUserIds.forEach(id => {
+            const recipientSocketId = onlineUsers.get(id);
+            if (recipientSocketId) {
+              io.to(recipientSocketId).emit("chatupdated", populatedChats);
+            }
+          });
         } catch (error) {
-            console.log("BACKEND error occurred during fetchRecentChats");
-            socket.emit("error", "Failed to reload chats");
+          console.error("BACKEND error occurred during fetchRecentChats", error);
+          socket.emit("error", "Failed to reload chats");
         }
-    });
+      });
+      
 
     //disconnect
     socket.on("disconnect", () => {
