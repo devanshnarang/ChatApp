@@ -231,7 +231,8 @@ io.on("connection", (socket) => {
           // 3. Collect all unique user IDs from the fetched chats.
           const uniqueUserIds = new Set();
           populatedChats.forEach(chat => {
-            chat.users.forEach(user => {
+              chat.users.forEach(user => {
+                console.log(user);
               uniqueUserIds.add(user._id.toString());
             });
           });
