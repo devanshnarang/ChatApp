@@ -219,6 +219,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
       };
       // const { data } = await axios.post("https://chatapp-5os8.onrender.com/api/chat", { userId }, config);
       const { data } = await axios.post("https://chatapp-5os8.onrender.com/api/chat", { userId }, config);
+      setSearchResult([]);
       setSearch("");
       setSelectedChat(data);
       socket.emit("fetchRecentChats", user.userExists._id);
