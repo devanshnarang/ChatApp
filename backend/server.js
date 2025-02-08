@@ -264,4 +264,21 @@ io.on("connection", (socket) => {
         }
       });
 
+      //group sockets
+      socket.on("groupCreate", (data) => {
+        console.log("Received groupCreate event with data:", data);
+      
+        data.users.forEach((user) => {
+          const userId = user._id.toString(); // Ensure the ID is a string
+          const recipientSocketId = onlineUsers.get(userId);
+          if (recipientSocketId) {
+            io.to(recipientSocketId).emit("groupCreated", data);
+            console.log(`Group creation notification sent to user ${userId}`);
+          } else {
+            console.log(`User ${userId} is not online; no notification sent.`);
+          }
+        });
+      });
+      
+
 });
