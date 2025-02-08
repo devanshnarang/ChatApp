@@ -37,8 +37,18 @@ const WantedBackup = () => {
             try {
                 const key = await generateKeyPair();
 
+                // const res = await axios.post(
+                //     'https://chatapp-5os8.onrender.com/api/user/save-public-key',
+                //     { publicKey: key.publicKey },
+                //     {
+                //         headers: {
+                //             "Content-Type": "application/json",
+                //             Authorization: `Bearer ${user.token}`,
+                //           },
+                //     }
+                // );
                 const res = await axios.post(
-                    'https://chatapp-5os8.onrender.com/api/user/save-public-key',
+                    '/api/user/save-public-key',
                     { publicKey: key.publicKey },
                     {
                         headers: {

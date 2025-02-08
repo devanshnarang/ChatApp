@@ -88,6 +88,7 @@ io.on("connection", (socket) => {
 
             // If it's a group chat, update read status individually.
             if (chat.isGroupChat) {
+                return;
                 const unreadMessages = await messageModel.find({
                     chat: chatId,
                     isRead: false,
@@ -169,9 +170,7 @@ io.on("connection", (socket) => {
 
             // Get the recipient's socket ID from the onlineUsers map
             const recipientSocketId = onlineUsers.get(user._id);
-            console.log(recipientSocketId);
             if (recipientSocketId) {
-                console.log("Calling in recipients Id ");
                 io.to(recipientSocketId).emit("message received", newMessageReceived);
                 io.to(recipientSocketId).emit("updateUnreadRedCount", newMessageReceived);
                 io.to(recipientSocketId).emit("updateForloggedUser", newMessageReceived);
@@ -189,7 +188,7 @@ io.on("connection", (socket) => {
             // Notify the entire chat room about the deletion
             const chatRoom = deletedMessage.chat;
             io.to(chatRoom.toString()).emit("messageDeleted", messageId);
-            console.log("BACKEND CALLING - message deleted");
+            // console.log("BACKEND CALLING - message deleted");
         } catch (error) {
             console.error("Error deleting message:", error);
             socket.emit("error", "Failed to delete the message");
@@ -232,7 +231,7 @@ io.on("connection", (socket) => {
           const uniqueUserIds = new Set();
           populatedChats.forEach(chat => {
               chat.users.forEach(user => {
-                console.log(user);
+                // console.log(user);
               uniqueUserIds.add(user._id.toString());
             });
           });
@@ -266,7 +265,7 @@ io.on("connection", (socket) => {
 
       //group sockets
       socket.on("groupCreate", (data) => {
-        console.log("Received groupCreate event with data:", data);
+        // console.log("Received groupCreate event with data:", data);
       
         data.users.forEach((user) => {
           const userId = user._id.toString(); // Ensure the ID is a string

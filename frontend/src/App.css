@@ -1,5 +1,6 @@
 *{
-  color:black;
+  color:white;
+  background-color: black;
 }
 
 body{
@@ -356,4 +357,22 @@ body{
 /* This rule targets span elements that have a border radius (i.e. your message bubbles)
    and forces a padding-right of 40px, overriding the inline style */
 
+  
+   .whiteLine {
+    border: 20px solid white;
+    height: 100px;
+    background-color: white;
+  }
+
+  .dropdown-item.no-hover-bg:hover {
+    background-color: transparent !important;
+  }
+  
+  .hover-enlarge {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .hover-enlarge:hover {
+    transform: scale(1.2);
+  }
   

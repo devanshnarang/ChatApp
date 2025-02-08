@@ -37,7 +37,7 @@ const RecoveryKeyModal = ({ recoveryKey, onConfirm, onCancel }) => {
               value={recoveryKey}
               readOnly
             />
-            <button className="copy-button" onClick={copyToClipboard}>
+            <button className="copy-button" style={{color:"black"}} onClick={copyToClipboard}>
               Copy
             </button>
           </div>

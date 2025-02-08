@@ -126,21 +126,21 @@ const GroupProfile = ({
           {/* Backdrop */}
           <div
             className="modal-backdrop fade show"
-            style={{ zIndex: 3 }}
+            style={{ zIndex: 3,border:"5px solid white" }}
           ></div>
           {/* Modal */}
           <div
             className={`modal fade show`}
             tabIndex="-1"
             role="dialog"
-            style={{ display: "block", zIndex: 3 }}
+            style={{ display: "block", zIndex: 3,border:"5x solid white" }}
             aria-labelledby="exampleModalCenterTitle"
             aria-hidden="false"
           >
             <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="exampleModalLongTitle">
+              <div className="modal-content" style={{backgroundColor: "rgb(113,111,111)",border:"5px solid white",padding:"4px"}}>
+                <div className="modal-header" style={{backgroundColor:"rgb(85,85,85)"}}>
+                  <h5 className="modal-title" id="exampleModalLongTitle" style={{backgroundColor:"rgb(85,85,85)"}}>
                     {selectedChat.chatName}
                   </h5>
                 </div>
@@ -152,6 +152,7 @@ const GroupProfile = ({
                     gap: "10px", // Adjust spacing between items
                     width: "100%", // Fit the parent container
                     boxSizing: "border-box", // Prevent overflow by including padding in width
+                    backgroundColor:"rgb(85,85,85)"
                   }}
                 >
                   {users.map((u) => {
@@ -201,13 +202,14 @@ const GroupProfile = ({
                   })}
                 </div>
 
-                <div className="d-flex">
+                <div className="d-flex" style={{backgroundColor:"rgb(85,85,85)"}}>
                   <input
                     placeholder="Enter User to add. E.g. Arjun"
                     style={{
                       width: "50%",
                       height: "40px",
                       marginRight: "4px",
+                      backgroundColor:"white"
                     }}
                     onChange={(e) => handleSearch(e)}
                     value={userToAdd}
@@ -218,6 +220,8 @@ const GroupProfile = ({
                       height: "40px",
                       padding: "0px",
                       marginBottom: "4px",
+                      backgroundColor:"rgb(59, 59, 255)",
+                      color:"white"
                     }}
                     onClick={() => handleAddUser(userToAdd)} // Handle user addition
                   >
@@ -225,7 +229,7 @@ const GroupProfile = ({
                   </button>
                 </div>
 
-                <div style={{ marginTop: "10px" }}>
+                <div style={{ marginTop: "10px",backgroundColor:"rgb(85,85,85)" }}>
                   {/* Render search results below the search bar */}
                   {searchResult?.slice(0, resultLimit).map((user) => (
                     <div
@@ -260,13 +264,14 @@ const GroupProfile = ({
                   ))}
                 </div>
 
-                <div className="flex">
+                <div className="flex" style={{backgroundColor:"rgb(85,85,85)"}}>
                   <input
                     placeholder="Enter New Group Name"
                     style={{
                       width: "50%",
                       height: "40px",
                       marginRight: "4px",
+                      backgroundColor:"white"
                     }}
                     onChange={(e) => setGroupName(e.target.value)}
                     value={groupName}
@@ -277,17 +282,19 @@ const GroupProfile = ({
                       height: "40px",
                       padding: "0px",
                       marginBottom: "4px",
+                      backgroundColor:"rgb(59, 59, 255)"
                     }}
                     onClick={() => handleRename(groupName)}
                   >
                     Rename
                   </button>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer" >
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={closeModal}
+                    style={{backgroundColor:"black",color:"white"}}
                   >
                     Close
                   </button>

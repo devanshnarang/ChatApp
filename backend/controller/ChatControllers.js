@@ -104,7 +104,7 @@ export const creategroupChatController=async(req,res)=>{
             return res.status(400).send({message:error.message});
         }
     } catch (error) {
-        
+        return res.status(400).send({message:error.message});
     }
 }
 

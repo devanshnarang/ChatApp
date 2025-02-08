@@ -45,8 +45,8 @@ const AllContacts = ({ fetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
-      // console.log(data.chats);
+      // const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
+      const { data } = await axios.get("/api/chat", config);
       setChats(data.chats);
       return;
     } catch (error) {
@@ -74,6 +74,7 @@ const AllContacts = ({ fetchagain }) => {
   // Handle deletion of a chat from the UI and notify the server
   const handleDelete = (chat) => {
     const a = chat.users.find((u) => u._id === user.userExists._id);
+    setSelectedChat(null);
     setDelChats([...delChats, chat]);
     setLastDelChat(chat._id);
     setShowDiv(false);
@@ -99,7 +100,8 @@ const AllContacts = ({ fetchagain }) => {
       };
 
       for (const chat of chats) {
-        const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
+        // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
+        const { data } = await axios.get(`/api/message/${chat._id}`, config);
         // First, update with the full array of unread messages (not used later)
         const unreadMessages = data.filter(
           (message) =>
@@ -119,8 +121,6 @@ const AllContacts = ({ fetchagain }) => {
     }
   };
 
-  
-
   useEffect(() => {
     const x = localStorage.getItem("userInfo");
     if (x) {
@@ -132,7 +132,7 @@ const AllContacts = ({ fetchagain }) => {
   useEffect(() => {
     fetchChats();
     fetchMessagesForAllChats();
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     if (chats.length > 0) {
@@ -145,7 +145,6 @@ const AllContacts = ({ fetchagain }) => {
       try {
         console.log("Calling in updateForloggedUser socket");
         const newUnreadCounts = {};
-        console.log(chats);
         for (const chat of chats) {
           const config = {
             headers: {
@@ -153,7 +152,9 @@ const AllContacts = ({ fetchagain }) => {
             },
           };
           // Fetch messages for the current chat
-          const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
+          // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
+          const { data } = await axios.get(`/api/message/${chat._id}`, config);
+
           // Filter unread messages not sent by the logged-in user
           const unreadMessages = data.filter(
             (message) =>
@@ -170,9 +171,9 @@ const AllContacts = ({ fetchagain }) => {
     const handleupdateUnreadRedCount = async (newMessageReceived) => {
       try {
         console.log("updateUnreadRedCount event received:", newMessageReceived);
-        console.log(newMessageReceived.chat._id);
+        fetchChats();
+        fetchMessagesForAllChats();
         for (const chat of chats) {
-          console.log(chat._id);
           if (
             chat._id.toString() === newMessageReceived.chat._id.toString()
           ) {
@@ -183,8 +184,12 @@ const AllContacts = ({ fetchagain }) => {
             };
   
             // Fetch the latest messages for this chat
+            // const { data } = await axios.get(
+            //   `https://chatapp-5os8.onrender.com/api/message/${chat._id}`,
+            //   config
+            // );
             const { data } = await axios.get(
-              `https://chatapp-5os8.onrender.com/api/message/${chat._id}`,
+              `/api/message/${chat._id}`,
               config
             );
   
@@ -211,15 +216,22 @@ const AllContacts = ({ fetchagain }) => {
         console.error("Error updating unread count:", error);
       }
     };
+
+    //group chat=67a71
+    //one-one=67a723
+    const handleUpdateMyChats = async (data) => {
+      fetchChats();
+    };
+
     socket.emit("deleteChat", lastDelChat);
 
     // Listen for unread count updates from server for a single new message
-    socket.on("updateUnreadRedCount",handleupdateUnreadRedCount );
+    socket.on("updateUnreadRedCount", handleupdateUnreadRedCount);
 
     // Listen for a global update for the logged-in user to refresh unread counts
-    socket.on("updateForloggedUser",handleupdateForloggedUser );
+    socket.on("updateForloggedUser", handleupdateForloggedUser);
 
-   
+    socket.on("groupCreated", handleUpdateMyChats);
   }, [socket]);
 
   // --------------------------
@@ -238,6 +250,7 @@ const AllContacts = ({ fetchagain }) => {
           boxSizing: "border-box",
           marginTop: "-30px",
           zIndex: 1,
+          backgroundColor: "rgb(56,55,55)"
         }}
       >
         {user && (
@@ -258,14 +271,14 @@ const AllContacts = ({ fetchagain }) => {
               style={{
                 position: "sticky",
                 top: "0",
-                backgroundColor: "white",
+                backgroundColor: "rgb(56,55,55)",
                 zIndex: "3", // Ensure header is interactive
                 padding: "10px",
                 boxSizing: "border-box",
                 height: "10vh",
               }}
             >
-              <h3>My Chats</h3>
+              <h3 style={{ color: "white", fontSize: "3rem",backgroundColor:"rgb(56,55,55)" }}>Chats</h3>
             </div>
 
             {/* Chat List */}
@@ -279,17 +292,17 @@ const AllContacts = ({ fetchagain }) => {
                 padding: "10px",
                 border: "3px solid black",
                 height: "75vh",
+                backgroundColor:"rgb(56,55,55)"
               }}
             >
               {chats &&
                 chats.map((chat) => {
                   if (!found(chat)) {
-                    return (
+                    return [
                       <div
                         key={chat._id}
                         style={{
                           overflowY: "auto", // Only the chat list should be scrollable
-                          backgroundColor: "greenyellow",
                           color: "red",
                           padding: "10px",
                           margin: "5px 0",
@@ -298,6 +311,7 @@ const AllContacts = ({ fetchagain }) => {
                           boxSizing: "border-box",
                           display: "flex",
                           flexDirection: "row",
+                          backgroundColor:"rgb(56,55,55)"
                         }}
                         onClick={() => {
                           setSelectedChat(chat);
@@ -315,6 +329,7 @@ const AllContacts = ({ fetchagain }) => {
                             alignItems: "center",
                             fontWeight: "bold",
                             fontSize: "x-large",
+                            backgroundColor:"rgb(56,55,55)"
                           }}
                         >
                           {(!chat.isGroupChat && getSender(chat.users)?.pic) ||
@@ -343,7 +358,7 @@ const AllContacts = ({ fetchagain }) => {
                             ? getSender(chat.users)?.name
                             : chat.chatName}
                         </h5>
-                        {unreadCounts[chat._id] > 0 && (
+                        {!chat.isGroupChat && unreadCounts[chat._id] > 0 && (
                           <div
                             style={{
                               backgroundColor: "red",
@@ -358,7 +373,7 @@ const AllContacts = ({ fetchagain }) => {
                               justifyContent: "center",
                             }}
                           >
-                            {unreadCounts[chat._id]}
+                            {!chat.isGroupChat && unreadCounts[chat._id]}
                           </div>
                         )}
 
@@ -395,8 +410,17 @@ const AllContacts = ({ fetchagain }) => {
                             </div>
                           </div>
                         )}
-                      </div>
-                    );
+                      </div>,
+                      <hr
+                        key={`${chat._id}-hr`}
+                        style={{
+                          border: "1px solid black",
+                          height: "5px",
+                          backgroundColor: "white",
+                          width: "100%",
+                        }}
+                      />
+                    ];
                   }
                   return null; // If chat is marked for deletion, return null
                 })}

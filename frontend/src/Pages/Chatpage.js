@@ -31,12 +31,13 @@ const Chatpage = () => {
           {/* Fixed Sidebar */}
           <div
             style={{
-              height: "6vh",
+              height: "10vh",
               position: "fixed",
               width: "100%",
               top: 0,
               left: 0,
               zIndex: 101,
+              backgroundColor:"rgb(85,85,85)"
             }}
           >
             <SideBar fetchagain={fetchagain} setFetchagain={setFetchagain} />
@@ -47,7 +48,7 @@ const Chatpage = () => {
             className="d-flex"
             style={{
               height: "90vh",
-              marginTop: "12vh",
+              marginTop: "10vh",
               flexDirection: "row",
               overflow: "hidden", // Prevents scrolling in the main container
             }}
@@ -81,6 +82,7 @@ const Chatpage = () => {
                       scrollbarWidth: "none",
                       height: "90vh",
                       zIndex: 1,
+                      backgroundColor:"black"
                     }}
                   >
                     <ChatArea
@@ -90,7 +92,7 @@ const Chatpage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="d-flex" style={{ width: "100%", zIndex: 1 }}>
+                <div className="d-flex" style={{ width: "100%", zIndex: 1,backgroundColor:"rgb(56,55,55)" }}>
                   {/* All Contacts Section */}
                   <div
                     className="flex-1"
@@ -100,6 +102,8 @@ const Chatpage = () => {
                       flexGrow: 1,
                       height: "100vh",
                       zIndex: 1,
+                      backgroundColor:"rgb(56,55,55)",
+                      border:"20px solid",
                     }}
                   >
                     <AllContacts fetchagain={fetchagain} />
@@ -110,7 +114,7 @@ const Chatpage = () => {
                     style={{
                       width: "50%",
                       fontSize: "50px",
-                      backgroundColor: "green",
+                      backgroundColor: "rgb(56,55,55)",
                       flexGrow: 1,
                       height: "100vh",
                       zIndex: showgroupchatModel ? -2 : 1,
@@ -146,3 +150,4 @@ const Chatpage = () => {
 };
 
 export default Chatpage;
+//https://chatapp-5os8.onrender.com

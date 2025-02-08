@@ -7,7 +7,7 @@ const GroupChatModal = ({ closeModal }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [searchResult, setSearchResult] = useState([]);
-  const { user, chats, setChats, showgroupchatModal, setShowgroupchatModal } =
+  const { user, selectedChat, setSelectedChat, chats, setChats, showgroupchatModal, setShowgroupchatModal, socket } =
     ChatState();
 
   const handleSearch = async (query) => {
@@ -23,7 +23,9 @@ const GroupChatModal = ({ closeModal }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
+      // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${query}`, config);
       const { data } = await axios.get(`/api/user?search=${query}`, config);
+
       setSearchResult(data);
     } catch (error) {
       alert("Error fetching users. Please try again!");
@@ -43,6 +45,14 @@ const GroupChatModal = ({ closeModal }) => {
         },
       };
 
+      // const { data } = await axios.post(
+      //   "https://chatapp-5os8.onrender.com/api/chat/group",
+      //   {
+      //     name: groupChatName,
+      //     users: JSON.stringify(selectedUsers.map((u) => u._id)),
+      //   },
+      //   config
+      // );
       const { data } = await axios.post(
         "/api/chat/group",
         {
@@ -51,8 +61,10 @@ const GroupChatModal = ({ closeModal }) => {
         },
         config
       );
-
+      console.log(data);
       setChats([data, ...chats]);
+      socket.emit("groupCreate", data);
+      // setSelectedChat(data);
       closeModal();
     } catch (error) {
       alert("Failed to create group chat. Please try again!");
@@ -86,7 +98,7 @@ const GroupChatModal = ({ closeModal }) => {
           {/* Backdrop */}
           <div
             className="modal-backdrop fade show"
-            style={{ zIndex: 100 }}
+            style={{ zIndex: 100, }}
           ></div>
           {/* Modal */}
           <div
@@ -96,13 +108,15 @@ const GroupChatModal = ({ closeModal }) => {
             style={{
               display: "block",
               zIndex: 101,
+              backgroundColor: "rgb(143,143,143)"
             }}
             aria-labelledby="exampleModalCenterTitle"
             aria-hidden="false"
           >
-            <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-dialog modal-dialog-centered" role="document" style={{ backgroundColor: "rgb(143,143,143)" }}>
               <div
                 className="modal-content"
+                style={{ backgroundColor: "rgb(85,85,85)", color: "black" }}
               >
                 <div className="modal-header">
                   <h5 className="modal-title" id="exampleModalLongTitle">
@@ -111,24 +125,26 @@ const GroupChatModal = ({ closeModal }) => {
                 </div>
                 <div className="modal-body d-flex flex-column align-self-stretch mb-2">
                   {/* Selected Users */}
-                  <div className="d-flex">
+                  <div className="d-flex" >
                     {selectedUsers?.map((u) => (
                       <div
                         key={u._id}
                         className="d-flex align-items-center mb-1 me-1 p-1 bg-light border rounded"
                         style={{ gap: "2px" }}
                       >
-                        <div>{u.name}</div>
+                        <div style={{ color: "black", backgroundColor: "white" }}>{u.name}</div>
                         <div>
                           <button
                             type="button"
-                            className="close btn btn-outline-info"
+                            className="close btn btn-outline-info hover-enlarge"
                             aria-label="Close"
+                            style={{ backgroundColor: "white",fontSize:"1rem" }}
                             onClick={() => handleDelete(u)}
                           >
                             <span aria-hidden="true">&times;</span>
                           </button>
                         </div>
+
                       </div>
                     ))}
                   </div>
@@ -138,10 +154,12 @@ const GroupChatModal = ({ closeModal }) => {
                     placeholder="Group Name"
                     className="mb-2"
                     onChange={(e) => setGroupChatName(e.target.value)}
+                    style={{ backgroundColor: "rgb(255, 255, 255)", color: "black" }}
                   />
                   <input
                     placeholder="Add Users Eg. Ayush, Hardik, Daksh"
                     onChange={(e) => handleSearch(e.target.value)}
+                    style={{ backgroundColor: "rgb(255, 255, 255)", color: "black" }}
                   />
                   {searchResult?.slice(0, 4).map((user) => (
                     <div id={user._id}>
@@ -149,7 +167,9 @@ const GroupChatModal = ({ closeModal }) => {
                         className="mt-2 border border-dark"
                         id={user._id}
                         style={{
-                          backgroundColor: "rgb(148, 173, 251)",
+                          backgroundColor: "rgb(143,143,143)",
+                          fontSize: "1rem",
+                          fontWeight: "bold",
                           width: "200px",
                           textAlign: "left",
                         }}
@@ -160,7 +180,7 @@ const GroupChatModal = ({ closeModal }) => {
                     </div>
                   ))}
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer" style={{ backgroundColor: "rgb(85,85,85)", color: "black" }}>
                   <button
                     type="button"
                     className="btn btn-secondary"

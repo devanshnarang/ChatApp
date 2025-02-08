@@ -68,7 +68,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
   // -----------------------
   // Context & Navigation
   // -----------------------
-  const { user, setSelectedChat, chats, setChats, showgroupchatModal, setShowgroupchatModal, socket } = ChatState();
+  const { user,selectedChat, setSelectedChat, chats, setChats, showgroupchatModal, setShowgroupchatModal, socket } = ChatState();
   const navigate = useNavigate();
 
   // -----------------------
@@ -114,8 +114,18 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
       localStorage.getItem("privateKey")
     );
     try {
+      // const res = await axios.post(
+      //   "https://chatapp-5os8.onrender.com/api/user/handle-backup",
+      //   { privateKey, salt, iv },
+      //   {
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer ${user.token}`,
+      //     },
+      //   }
+      // );
       const res = await axios.post(
-        "https://chatapp-5os8.onrender.com/api/user/handle-backup",
+        "/api/user/handle-backup",
         { privateKey, salt, iv },
         {
           headers: {
@@ -148,7 +158,8 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
   const fetchChats = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
+      // const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
+      const { data } = await axios.get("/api/chat", config);
       setChats(data.chats);
       return;
     } catch (error) {
@@ -166,7 +177,8 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${d}`, config);
+      // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${d}`, config);
+      const { data } = await axios.get(`/api/user?search=${d}`, config);
       const filteredResults = data.filter((u) => u._id !== user._id);
       setSearchResult(filteredResults);
       setFetchagain(!fetchagain);
@@ -185,7 +197,8 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${search}`, config);
+      // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${search}`, config);
+      const { data } = await axios.get(`/api/user?search=${search}`, config);
       const filteredResults = data.filter((u) => u._id !== user._id);
       setSearchResult(filteredResults);
       setFetchagain(!fetchagain);
@@ -204,7 +217,8 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.post("https://chatapp-5os8.onrender.com/api/chat", { userId }, config);
+      // const { data } = await axios.post("https://chatapp-5os8.onrender.com/api/chat", { userId }, config);
+      const { data } = await axios.post("/api/chat", { userId }, config);
       setSearch("");
       setSelectedChat(data);
       socket.emit("fetchRecentChats", user.userExists._id);
@@ -230,6 +244,10 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
   }, [fetchagain]);
 
   useEffect(() => {
+    fetchChats();
+  }, [selectedChat]);
+
+  useEffect(() => {
     socket.on("chatupdated", (populatedChats) => {
       setChats(populatedChats);
     });
@@ -249,6 +267,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
         style={{
           padding: isMobile || isTablet ? "5px 10px" : "10px 30px 10px 10px",
           display: "flex",
+          backgroundColor:"rgb(85,85,85)",
           justifyContent: "space-between",
           alignItems: "center",
           width: "100%",
@@ -262,6 +281,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
             alignItems: "center",
             gap: isMobile || isTablet ? "5px" : "10px",
             fontWeight: "bold",
+            backgroundColor:"rgb(85,85,85)"
           }}
         >
           <a
@@ -270,18 +290,21 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
             style={{
               fontSize: isMobile ? "1.2rem" : isTablet ? "1.5rem" : "xx-large",
               marginRight: "10px",
+              color:"white",
+              backgroundColor:"rgb(85,85,85)"
             }}
           >
-            Chatsapp
+            CyferLink
           </a>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center",backgroundColor:"rgb(85,85,85)" }}>
             <input
               placeholder="Search Name"
               style={{
+                color:'black',
                 backgroundColor: "white",
                 marginRight: "5px",
                 // Reduced widths:
-                width: isMobile ? "40%" : isTablet ? "45%" : "80px",
+                width: isMobile ? "40%" : isTablet ? "45%" : "50%",
                 padding: isMobile ? "3px 5px" : "8px",
                 fontSize: isMobile ? "0.7rem" : isTablet ? "0.8rem" : "1rem",
               }}
@@ -328,7 +351,9 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
                   zIndex: 3,
                   maxHeight: "200px",
                   overflowY: "auto",
-                  backgroundColor: "white",
+                  marginTop:'8px',
+                  color:"white",
+                  backgroundColor: "rgb(143,143,143)",
                   boxShadow: "0 2px 5px rgba(0, 0, 0, 0.15)",
                   borderRadius: "5px",
                   padding: "5px",
@@ -342,6 +367,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
                       marginBottom: "10px",
                       alignItems: "center",
                       cursor: "pointer",
+                      backgroundColor:"rgb(143,143,143)"
                     }}
                     onClick={() => accessChats(user._id)}
                   >
@@ -351,7 +377,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
                       style={{ width: "40px", height: "40px" }}
                       alt="User"
                     />
-                    <span style={{ marginLeft: "10px" }}>{user.email}</span>
+                    <span style={{ marginLeft: "10px",backgroundColor:"rgb(143,143,143)" }}>{user.email}</span>
                   </div>
                 ))}
               </div>
@@ -366,6 +392,7 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
             alignItems: "center",
             justifyContent: "center",
             gap: isMobile || isTablet ? "5px" : "10px",
+            backgroundColor:"rgb(85,85,85)"
           }}
         >
           <div>
@@ -384,13 +411,14 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
               New Group +
             </button>
           </div>
-          <li className="nav-item dropdown">
+          <li className="nav-item dropdown" style={{backgroundColor:"rgb(85,85,85)",color:"white"}}>
               <a
                 className="nav-link dropdown-toggle"
                 href="#"
                 role="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
+                style={{backgroundColor:"rgb(85,85,85)"}}
               >
                 {user?.userExists?.pic && (
                   <img
@@ -405,17 +433,28 @@ const SideBar = ({ fetchagain, setFetchagain }) => {
                   />
                 )}
               </a>
-              <ul className="dropdown-menu" style={isMobile ? {} : { marginTop: "10px", left: "auto", right: "15%" }}>
-                <li>
-                  <a className="dropdown-item" href="#" onClick={openModal}>
-                    My Profile
-                  </a>
-                </li>
-                <li>
-                  <a className="dropdown-item" href="#" onClick={logoutHandler}>
-                    LogOut
-                  </a>
-                </li>
+              <ul className="dropdown-menu" style={isMobile ? {backgroundColor:"rgb(85,85,85)"} : { marginTop: "10px", left: "auto", right: "15%",backgroundColor:"rgb(85,85,85)" }}>
+              <li style={{backgroundColor:"rgb(85,85,85)"}}>
+  <a
+    className="dropdown-item no-hover-bg"
+    href="#"
+    onClick={openModal}
+    style={{ color: "white", cursor: "pointer",backgroundColor:"rgb(85,85,85)" }}
+  >
+    My Profile
+  </a>
+</li>
+<li>
+  <a
+    className="dropdown-item no-hover-bg"
+    href="#"
+    onClick={logoutHandler}
+    style={{ color: "white", cursor: "pointer",backgroundColor:"rgb(85,85,85)" }}
+  >
+    LogOut
+  </a>
+</li>
+
               </ul>
             </li>
         </div>

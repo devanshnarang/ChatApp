@@ -52,7 +52,7 @@ export const sendmessageController = async (req, res) => {
     await ChatModel.findByIdAndUpdate(chatId, {
       latestMessage: message,
     });
-
+    console.log(chatId);
     // Send the message with decrypted content to the frontend
     return res.json(message);
   } catch (error) {

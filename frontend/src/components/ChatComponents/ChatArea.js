@@ -85,7 +85,8 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${selectedChat._id}`, config);
+      // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${selectedChat._id}`, config);
+      const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
       const readMessages = data.filter((message) => message.isRead);
       const unreadMessages = data.filter((message) => !message.isRead);
       setReadmsgs(readMessages);
@@ -99,9 +100,58 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
 
   const sendMessage = async (event) => {
     if (event.key === "Enter" && newmessage) {
+      // Stop the typing indicator for the current chat
       socket.emit("stop typing", selectedChat._id);
+  
       try {
-        try {
+        // Common config for all axios requests
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+        };
+  
+        // Check if the current chat is a group chat
+        if (selectedChat.isGroupChat) {
+          // For group chats, encrypt the message for each group member
+          const encryptedMessages = await Promise.all(
+            selectedChat.users.map(async (groupUser) => {
+              // Retrieve the public key for each group user
+              const { data: pubKeyData } = await axios.post(
+                "/api/user/getting-public-key",
+                { id: groupUser._id },
+                config
+              );
+              // Encrypt the message using the user's public key
+              const encryptedMessage = await encryptMessage(newmessage, pubKeyData.publicKey);
+              const { data } = await axios.post(
+                "/api/message",
+                {
+                  from: encryptedMessage, // Array of { userId, encryptedMessage }
+                  tocontent: encryptedMessage,
+                  chatId: selectedChat._id,
+                  isRead: false,
+                },
+                config
+              );
+              socket.emit("new message", data);
+              setMessages((prevMessages) => [...prevMessages, data]);
+              return { userId: groupUser._id, encryptedMessage };
+            })
+          );
+  
+          // Clear the message input
+          setNewmessage("");
+  
+          // Post the group message with the encrypted messages for all users.
+          // The backend should expect a field like `groupContents` for group messages.
+          
+          // Notify others via socket and update your local messages
+        } else {
+          // One-on-one chat logic
+          // Determine who is the receiver and who is the sender.
+          // Assumes a one-on-one chat will have exactly two users.
           const receiver =
             selectedChat.users[0]._id === user.userExists._id
               ? selectedChat.users[1]
@@ -110,58 +160,49 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             selectedChat.users[0]._id === user.userExists._id
               ? selectedChat.users[0]
               : selectedChat.users[1];
-          const res1 = await axios.post(
-            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
+  
+          // Get the public key for the sender (for storing the sender’s encrypted version)
+          const { data: senderPubKeyData } = await axios.post(
+            "/api/user/getting-public-key",
             { id: senderMy._id },
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${user.token}`,
-              },
-            }
+            config
           );
-          const res2 = await axios.post(
-            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
+          // Get the public key for the receiver
+          const { data: receiverPubKeyData } = await axios.post(
+            "/api/user/getting-public-key",
             { id: receiver._id },
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${user.token}`,
-              },
-            }
+            config
           );
-          console.log(user);
-          const encryptmsg1 = await encryptMessage(newmessage, res1.data.publicKey); // receiver
-          const encryptmsg2 = await encryptMessage(newmessage, res2.data.publicKey); // sender
-          const config = {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${user.token}`,
-            },
-          };
-
+  
+          // Encrypt the message separately for sender and receiver
+          const encryptmsgSender = await encryptMessage(newmessage, senderPubKeyData.publicKey);
+          const encryptmsgReceiver = await encryptMessage(newmessage, receiverPubKeyData.publicKey);
+  
+          // Clear the message input
           setNewmessage("");
+  
+          // Post the one-on-one message with both encrypted contents.
           const { data } = await axios.post(
-            "https://chatapp-5os8.onrender.com/api/message",
+            "/api/message",
             {
-              tocontent: encryptmsg1,
-              fromcontent: encryptmsg2,
+              fromcontent: encryptmsgSender, // Sender’s copy
+              tocontent: encryptmsgReceiver,   // Receiver’s copy
               chatId: selectedChat._id,
               isRead: false,
             },
             config
           );
+          // Notify others via socket and update your local messages
           socket.emit("new message", data);
           setMessages((prevMessages) => [...prevMessages, data]);
-        } catch (error) {
-          console.log("Couldn't Encrypt Messages");
         }
       } catch (error) {
-        console.log(error);
+        console.error("Error sending message:", error);
         alert("Try sending message again!!");
       }
     }
   };
+  
 
   const handleMessage = (e) => {
     setNewmessage(e.target.value);
@@ -183,8 +224,9 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
 
   useEffect(() => {
     if (!socket || !selectedChat) return;
-    if (selectedChat.isGroupChat) {
+    if (selectedChat && selectedChat.isGroupChat) {
       // Group chat logic (if any) can go here
+      fetchMessages();
     } else {
       const a = selectedChat
         ? selectedChat.users[0]._id === user.userExists._id
@@ -202,7 +244,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
       }
 
       const initializeChat = async () => {
-        if (selectedChat.isGroupChat) {
+        if (selectedChat && selectedChat.isGroupChat) {
           getGroupSender(selectedChat);
           fetchMessages();
         } else {
@@ -261,7 +303,6 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
         selectedChatCompare &&
         selectedChatCompare._id === newMessageReceived.chat._id
       ) {
-        console.log("handleMessageReceived");
         setMessages((prevMessages) => {
           const isDuplicate = prevMessages.some(
             (message) => message._id === newMessageReceived._id
@@ -314,13 +355,15 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           display: "flex",
           flexDirection: "column",
           zIndex: showgroupchatModal ? 1 : -1,
+          // backgroundColor: "black"
         }}
       >
+        
         {/* Header */}
         <div
           className="d-flex flex-row justify-content-center align-items-center"
           style={{
-            backgroundColor: "red",
+            backgroundColor: "rgb(47,44,44)",
             position: "sticky",
             top: 0,
             zIndex: 1,
@@ -366,6 +409,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               display: "flex",
               flexDirection: "row",
               justifyContent: "flex-start",
+              backgroundColor: "rgb(47,44,44)",
             }}
           >
             <div
@@ -373,6 +417,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
                 marginRight: "5px",
                 display: "flex",
                 flexDirection: "row",
+                backgroundColor: "rgb(47,44,44)",
               }}
             >
               {selectedChat?.isGroupChat ? (
@@ -382,8 +427,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
                   <button
                     onClick={openModal}
                     style={{
-                      background: "none",
-                      border: "none",
+                      backgroundColor: "rgb(47,44,44)",                      border: "none",
                       padding: "0px",
                       marginLeft: "2px",
                       marginRight: "0px",
@@ -407,9 +451,9 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               )}
             </div>
             {selectedChat?.isGroupChat ? (
-              <div>{selectedChat?.chatName}</div>
+              <div style={{backgroundColor: "rgb(47,44,44)",fontSize:"2rem"}}>{selectedChat?.chatName}</div>
             ) : (
-              <div style={{ padding: "0px" }}>
+              <div style={{ padding: "0px",backgroundColor: "rgb(47,44,44)",fontSize:"2rem" }}>
                 {selectedChat?.users?.[0]?._id === user.userExists._id
                   ? selectedChat?.users?.[1]?.name
                   : selectedChat?.users?.[0]?.name}
@@ -446,7 +490,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             marginBottom: "25px",
             height: "75vh",
             zIndex: 1,
-            backgroundColor: "wheat",
+            backgroundColor:"black"
           }}
         >
           <MessageArea
@@ -478,7 +522,9 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
       height: "50px",        // the height of the input field
       width: "100%",
       border: "none",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      backgroundColor:"white",
+      color:"black"
       // Removed any marginBottom that might push it out.
     }}
     placeholder="Enter the message..."

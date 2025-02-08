@@ -19,30 +19,50 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
   // Decrypt message function
   const decryptMessageContent = async (m) => {
     try {
-      let decrypted;
-      try {
-        if (m.sender._id === user.userExists._id) {
+      let decrypted = "";
+      if (m.chat.isGroupChat) {
+        try {
           decrypted = await decryptMessage(
             m.tocontent,
             localStorage.getItem("privateKey")
           );
-        } else {
-          decrypted = await decryptMessage(
-            m.fromcontent,
-            localStorage.getItem("privateKey")
-          );
+        } catch (error) {
+          decrypted = "";
         }
-      } catch (error) {
-        decrypted = "";
+      } else {
+        // Single chat case.
+        try {
+          if (m.sender._id === user.userExists._id) {
+            decrypted = await decryptMessage(
+              m.fromcontent,
+              localStorage.getItem("privateKey")
+            );
+          } else {
+            decrypted = await decryptMessage(
+              m.tocontent,
+              localStorage.getItem("privateKey")
+            );
+          }
+        } catch (error) {
+          decrypted = "";
+        }
       }
+  
+      // Update state with the decrypted message (or empty string if decryption failed)
       setDecryptedMessages((prev) => ({
         ...prev,
         [m._id]: decrypted || "",
       }));
     } catch (error) {
       console.error("Error decrypting message:", error);
+      // Optionally, update the state with an empty message or some error text
+      setDecryptedMessages((prev) => ({
+        ...prev,
+        [m._id]: "",
+      }));
     }
   };
+  
 
   useEffect(() => {
     messages.forEach((m) => {
@@ -83,8 +103,8 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
 
   return (
     // The outer div now takes 100% height of its parent.
-    <div ref={feedContainerRef} style={{ height: "100%", overflowX: "hidden",marginBottom:"50px" }}>
-      <ScrollableFeed>
+    <div ref={feedContainerRef} style={{ height: "100%", overflowX: "hidden",marginBottom:"50px",backgroundColor:"black" }}>
+      <ScrollableFeed >
         {messages &&
           messages.map((m) => {
             const isCurrentSender = m.sender._id === user.userExists._id;
@@ -98,13 +118,14 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
                   justifyContent: isCurrentSender ? "flex-end" : "flex-start",
                   margin: "5px",
                   position: "relative",
+                  backgroundColor:"black"
                 }}
               >
                 {messageContent && (
                   <span
                     ref={(el) => (messageRefs.current[m._id] = el)}
                     style={{
-                      backgroundColor: isCurrentSender ? "#BEE3F8" : "#B9F5D0",
+                      backgroundColor: isCurrentSender ? "#1A237E" : "#424242",
                       borderRadius: "12px",
                       padding: "10px 15px",
                       paddingRight: "40px", // Reserve space for tick icons
@@ -128,6 +149,7 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
                           position: "absolute",
                           bottom: "5px",
                           right: "10px",
+                          backgroundColor:"rgb(85,85,85)"
                         }}
                       ></i>
                     )}
@@ -139,7 +161,7 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
                             ? { top: "0" }
                             : { bottom: "0" }),
                           left: "-220px",
-                          backgroundColor: "white",
+                          backgroundColor: "rgb(85,85,85)",
                           padding: "10px",
                           borderRadius: "8px",
                           boxShadow: "0px 4px 8px rgba(0,0,0,0.2)",
@@ -152,11 +174,12 @@ const MessageArea = ({ messages, setMessages, read, unread, socket }) => {
                             marginBottom: "8px",
                             fontSize: "14px",
                             fontWeight: "bold",
+                            background:"rgb(85,85,85)"
                           }}
                         >
                           Delete this message?
                         </span>
-                        <div style={{ display: "flex", gap: "10px" }}>
+                        <div style={{ display: "flex", gap: "10px",backgroundColor:"rgb(85,85,85)"}}>
                           <button
                             onClick={() => handleDelete(m)}
                             style={{
