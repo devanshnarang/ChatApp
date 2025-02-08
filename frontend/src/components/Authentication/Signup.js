@@ -104,30 +104,26 @@ const Signup = ({ isLogin, setIsLogin }) => {
   // Define breakpoints:
   // isMobile: for screens narrower than 576px
   // isTablet: for screens between 576px and 768px
-  // isSmallMobile: for screens narrower than 375px (e.g., iPhone SE)
   const isMobile = windowWidth < 576;
   const isTablet = windowWidth >= 576 && windowWidth < 768;
-  const isSmallMobile = windowWidth < 375;
 
   // Outer container style
   const outerContainerStyle = {
     background: "linear-gradient(135deg, #000000, #1a1a1a)",
-    minHeight: "100vh", // Ensure full viewport height
+    minHeight: isMobile ? "auto" : "50vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: isSmallMobile ? "5px" : isMobile ? "10px" : "20px",
-    overflowY: "auto", // Allow vertical scrolling if content overflows
+    padding: isMobile ? "10px" : "20px",
   };
 
   // Form container style
   const formStyle = {
     backgroundColor: "rgba(30, 30, 30, 0.9)",
-    padding: isSmallMobile ? "15px" : isMobile ? "20px" : isTablet ? "30px" : "40px",
-    borderRadius: isSmallMobile ? "6px" : isMobile ? "8px" : "12px",
+    padding: isMobile ? "20px" : isTablet ? "30px" : "40px",
+    borderRadius: isMobile ? "8px" : "12px",
     width: "100%",
-    maxWidth: isSmallMobile ? "320px" : isMobile ? "100%" : "450px",
-    boxSizing: "border-box",
+    maxWidth: isMobile ? "100%" : "450px",
     boxShadow: "0 10px 25px rgba(0, 0, 0, 0.8)",
     backdropFilter: "blur(8px)",
   };
@@ -143,7 +139,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
   // Input style for text, email, and password fields
   const inputStyle = {
     width: "100%",
-    padding: isSmallMobile ? "8px" : "10px",
+    padding: "10px",
     borderRadius: "6px",
     border: "1px solid #444444",
     backgroundColor: "#2a2a2a",
@@ -248,7 +244,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
             onClick={handleClick}
             style={{
               marginLeft: isMobile ? "0" : "10px",
-              padding: isSmallMobile ? "6px 10px" : "8px 12px",
+              padding: "8px 12px",
               borderRadius: "6px",
               border: "1px solid #444444",
               backgroundColor: "#333333",
@@ -287,7 +283,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
           disabled={isUploading}
           style={{
             width: "100%",
-            padding: isSmallMobile ? "10px" : "12px",
+            padding: "12px",
             borderRadius: "6px",
             border: "none",
             backgroundColor: "#6200EE",
@@ -296,7 +292,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
             fontSize: "1rem",
             cursor: "pointer",
             transition: "background-color 0.3s ease",
-            boxSizing: "border-box",
           }}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7e3ff2")}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#6200EE")}
