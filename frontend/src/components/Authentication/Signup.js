@@ -73,8 +73,8 @@ const Signup = ({ isLogin, setIsLogin }) => {
           "Content-type": "application/json",
         },
       };
-      // await axios.post("https://chatapp-5os8.onrender.com/api/user/register", { name, email, password, pic, publicKey }, config);
-      await axios.post("/api/user/register", { name, email, password, pic, publicKey }, config);
+      await axios.post("https://chatapp-5os8.onrender.com/api/user/register", { name, email, password, pic, publicKey }, config);
+      // await axios.post("/api/user/register", { name, email, password, pic, publicKey }, config);
       setIsLogin(!isLogin);
     } catch (error) {
       console.error("An error occurred:", error.message);

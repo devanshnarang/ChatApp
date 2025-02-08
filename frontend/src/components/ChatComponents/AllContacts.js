@@ -46,7 +46,7 @@ const AllContacts = ({ fetchagain }) => {
         },
       };
       // const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
-      const { data } = await axios.get("/api/chat", config);
+      const { data } = await axios.get("https://chatapp-5os8.onrender.com/api/chat", config);
       setChats(data.chats);
       return;
     } catch (error) {
@@ -101,7 +101,7 @@ const AllContacts = ({ fetchagain }) => {
 
       for (const chat of chats) {
         // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
-        const { data } = await axios.get(`/api/message/${chat._id}`, config);
+        const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
         // First, update with the full array of unread messages (not used later)
         const unreadMessages = data.filter(
           (message) =>
@@ -153,7 +153,7 @@ const AllContacts = ({ fetchagain }) => {
           };
           // Fetch messages for the current chat
           // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
-          const { data } = await axios.get(`/api/message/${chat._id}`, config);
+          const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${chat._id}`, config);
 
           // Filter unread messages not sent by the logged-in user
           const unreadMessages = data.filter(
@@ -189,7 +189,7 @@ const AllContacts = ({ fetchagain }) => {
             //   config
             // );
             const { data } = await axios.get(
-              `/api/message/${chat._id}`,
+              `https://chatapp-5os8.onrender.com/api/message/${chat._id}`,
               config
             );
   

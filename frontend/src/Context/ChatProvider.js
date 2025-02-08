@@ -4,7 +4,7 @@ import io from "socket.io-client";
 
 // const ENDPOINT = "https://chatapp-5os8.onrender.com";
 
-const ENDPOINT = "http://localhost:8080";
+const ENDPOINT = "https://chatapp-5os8.onrender.com";
 
 const ChatContext = createContext();
 

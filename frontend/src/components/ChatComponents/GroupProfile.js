@@ -29,7 +29,7 @@ const GroupProfile = ({
       };
 
       const { data } = await axios.post(
-        "/api/chat/groupremove",
+        "https://chatapp-5os8.onrender.com/api/chat/groupremove",
         { chatId: selectedChat._id, userId: u._id },
         config
       );
@@ -52,7 +52,7 @@ const GroupProfile = ({
       };
 
       const { data } = await axios.put(
-        "/api/chat/rename",
+        "https://chatapp-5os8.onrender.com/api/chat/rename",
         { chatId: selectedChat._id, chatName: g },
         config
       );
@@ -78,7 +78,7 @@ const GroupProfile = ({
         },
       };
 
-      const { data } = await axios.get(`/api/user?search=${userToAdd}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${userToAdd}`, config);
       setSearchResult(data);
     } catch (error) {
       alert("No user found with the given name!!");
@@ -102,7 +102,7 @@ const GroupProfile = ({
       };
 
       const { data } = await axios.post(
-        "/api/chat/groupAdd",
+        "https://chatapp-5os8.onrender.com/api/chat/groupAdd",
         { chatId: selectedChat._id, userId: u._id },
         config
       );

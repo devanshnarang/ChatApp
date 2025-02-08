@@ -85,8 +85,8 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           Authorization: `Bearer ${user.token}`,
         },
       };
-      // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${selectedChat._id}`, config);
-      const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/message/${selectedChat._id}`, config);
+      // const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
       const readMessages = data.filter((message) => message.isRead);
       const unreadMessages = data.filter((message) => !message.isRead);
       setReadmsgs(readMessages);
@@ -119,14 +119,14 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             selectedChat.users.map(async (groupUser) => {
               // Retrieve the public key for each group user
               const { data: pubKeyData } = await axios.post(
-                "/api/user/getting-public-key",
+                "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
                 { id: groupUser._id },
                 config
               );
               // Encrypt the message using the user's public key
               const encryptedMessage = await encryptMessage(newmessage, pubKeyData.publicKey);
               const { data } = await axios.post(
-                "/api/message",
+                "https://chatapp-5os8.onrender.com/api/message",
                 {
                   from: encryptedMessage, // Array of { userId, encryptedMessage }
                   tocontent: encryptedMessage,
@@ -163,13 +163,13 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
   
           // Get the public key for the sender (for storing the sender’s encrypted version)
           const { data: senderPubKeyData } = await axios.post(
-            "/api/user/getting-public-key",
+            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
             { id: senderMy._id },
             config
           );
           // Get the public key for the receiver
           const { data: receiverPubKeyData } = await axios.post(
-            "/api/user/getting-public-key",
+            "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
             { id: receiver._id },
             config
           );
@@ -183,7 +183,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
   
           // Post the one-on-one message with both encrypted contents.
           const { data } = await axios.post(
-            "/api/message",
+            "https://chatapp-5os8.onrender.com/api/message",
             {
               fromcontent: encryptmsgSender, // Sender’s copy
               tocontent: encryptmsgReceiver,   // Receiver’s copy

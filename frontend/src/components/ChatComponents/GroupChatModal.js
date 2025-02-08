@@ -24,7 +24,7 @@ const GroupChatModal = ({ closeModal }) => {
         },
       };
       // const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${query}`, config);
-      const { data } = await axios.get(`/api/user?search=${query}`, config);
+      const { data } = await axios.get(`https://chatapp-5os8.onrender.com/api/user?search=${query}`, config);
 
       setSearchResult(data);
     } catch (error) {
@@ -54,7 +54,7 @@ const GroupChatModal = ({ closeModal }) => {
       //   config
       // );
       const { data } = await axios.post(
-        "/api/chat/group",
+        "https://chatapp-5os8.onrender.com/api/chat/group",
         {
           name: groupChatName,
           users: JSON.stringify(selectedUsers.map((u) => u._id)),
