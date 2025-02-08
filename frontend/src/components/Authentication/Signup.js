@@ -13,6 +13,17 @@ const Signup = ({ isLogin, setIsLogin }) => {
   const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
 
+  // Set a CSS custom property for viewport height (for mobile devices)
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
+    setVh();
+    window.addEventListener("resize", setVh);
+    return () => window.removeEventListener("resize", setVh);
+  }, []);
+
   // Function to handle image upload via Cloudinary
   const postDetails = (pics) => {
     if (!pics) {
@@ -107,26 +118,32 @@ const Signup = ({ isLogin, setIsLogin }) => {
   const isMobile = windowWidth < 576;
   const isTablet = windowWidth >= 576 && windowWidth < 768;
 
-  // Outer container style
-  const outerContainerStyle = {
-    background: "linear-gradient(135deg, #000000, #1a1a1a)",
-    minHeight: isMobile ? "auto" : "50vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: isMobile ? "10px" : "20px",
-  };
+  // Outer container style:
+  // Using minHeight ensures that the container is at least the full viewport height.
+  // Removing flex centering allows content to flow and scroll.
+ // Outer container style
+const outerContainerStyle = {
+  background: "linear-gradient(135deg, #000000, #1a1a1a)",
+  minHeight: "100vh",
+  height: "100vh", // Ensure it takes the full viewport height
+  overflowY: "auto", // Allow scrolling when content overflows
+  padding: isMobile ? "10px" : "20px",
+  boxSizing: "border-box",
+};
 
-  // Form container style
-  const formStyle = {
-    backgroundColor: "rgba(30, 30, 30, 0.9)",
-    padding: isMobile ? "20px" : isTablet ? "30px" : "40px",
-    borderRadius: isMobile ? "8px" : "12px",
-    width: "100%",
-    maxWidth: isMobile ? "100%" : "450px",
-    boxShadow: "0 10px 25px rgba(0, 0, 0, 0.8)",
-    backdropFilter: "blur(8px)",
-  };
+// Form container style
+const formStyle = {
+  backgroundColor: "rgba(30, 30, 30, 0.9)",
+  padding: isMobile ? "15px" : isTablet ? "25px" : "40px",
+  borderRadius: isMobile ? "6px" : "12px",
+  maxWidth: isMobile ? "100%" : "450px",
+  margin: "20px auto", // Reduced margin for better scrollable space
+  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.8)",
+  backdropFilter: "blur(8px)",
+  boxSizing: "border-box",
+  overflowY: "auto", // Ensure the form content itself scrolls if too long
+};
+
 
   // Label style for input fields
   const labelStyle = {
@@ -145,6 +162,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
     backgroundColor: "#2a2a2a",
     color: "#ffffff",
     outline: "none",
+    boxSizing: "border-box",
   };
 
   return (
@@ -157,7 +175,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
           </label>
           <input
             type="text"
-            className="form-control"
             id="signupName"
             placeholder="Enter Name"
             value={name}
@@ -172,7 +189,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
           </label>
           <input
             type="email"
-            className="form-control"
             id="signupEmail"
             placeholder="Enter email"
             value={email}
@@ -182,16 +198,16 @@ const Signup = ({ isLogin, setIsLogin }) => {
         </div>
         {/* Password Input */}
         <div
-          className="mb-3 d-flex align-items-center"
+          className="mb-3"
           style={{
             marginBottom: "1rem",
+            display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: isMobile ? "flex-start" : "center",
           }}
         >
           <label
             htmlFor="signupPassword"
-            className="form-label"
             style={{
               ...labelStyle,
               width: isMobile ? "100%" : "30%",
@@ -202,7 +218,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
           </label>
           <input
             type={show ? "text" : "password"}
-            className="form-control form-control-sm"
             id="signupPassword"
             placeholder="Password"
             value={password}
@@ -212,16 +227,16 @@ const Signup = ({ isLogin, setIsLogin }) => {
         </div>
         {/* Confirm Password Input */}
         <div
-          className="mb-3 d-flex align-items-center"
+          className="mb-3"
           style={{
             marginBottom: "1rem",
+            display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: isMobile ? "flex-start" : "center",
           }}
         >
           <label
             htmlFor="confirmPassword"
-            className="form-label"
             style={{
               ...labelStyle,
               width: isMobile ? "100%" : "30%",
@@ -232,7 +247,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
           </label>
           <input
             type={show ? "text" : "password"}
-            className="form-control form-control-sm"
             id="confirmPassword"
             placeholder="Confirm Password"
             value={confirmpassword}
@@ -240,7 +254,6 @@ const Signup = ({ isLogin, setIsLogin }) => {
             style={{ ...inputStyle, flex: "1", marginBottom: isMobile ? "10px" : "0" }}
           />
           <button
-            className="btn btn-sm btn-outline-secondary ms-2"
             onClick={handleClick}
             style={{
               marginLeft: isMobile ? "0" : "10px",
@@ -258,12 +271,11 @@ const Signup = ({ isLogin, setIsLogin }) => {
         </div>
         {/* Profile Pic Input */}
         <div className="mb-3" style={{ marginBottom: "1rem" }}>
-          <label htmlFor="profilePic" className="form-label" style={labelStyle}>
+          <label htmlFor="profilePic" style={labelStyle}>
             Profile Pic
           </label>
           <input
             type="file"
-            className="form-control"
             id="profilePic"
             onChange={(e) => postDetails(e.target.files[0])}
             style={{
@@ -272,13 +284,13 @@ const Signup = ({ isLogin, setIsLogin }) => {
               border: "1px solid #444444",
               borderRadius: "6px",
               padding: "8px",
+              boxSizing: "border-box",
             }}
           />
         </div>
         {/* Signup Button */}
         <button
           type="submit"
-          className="btn btn-primary w-100"
           onClick={submitHandler}
           disabled={isUploading}
           style={{
@@ -292,6 +304,7 @@ const Signup = ({ isLogin, setIsLogin }) => {
             fontSize: "1rem",
             cursor: "pointer",
             transition: "background-color 0.3s ease",
+            boxSizing: "border-box",
           }}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7e3ff2")}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#6200EE")}

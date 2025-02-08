@@ -102,7 +102,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
     if (event.key === "Enter" && newmessage) {
       // Stop the typing indicator for the current chat
       socket.emit("stop typing", selectedChat._id);
-  
+
       try {
         // Common config for all axios requests
         const config = {
@@ -111,7 +111,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             Authorization: `Bearer ${user.token}`,
           },
         };
-  
+
         // Check if the current chat is a group chat
         if (selectedChat.isGroupChat) {
           // For group chats, encrypt the message for each group member
@@ -140,13 +140,13 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               return { userId: groupUser._id, encryptedMessage };
             })
           );
-  
+
           // Clear the message input
           setNewmessage("");
-  
+
           // Post the group message with the encrypted messages for all users.
           // The backend should expect a field like `groupContents` for group messages.
-          
+
           // Notify others via socket and update your local messages
         } else {
           // One-on-one chat logic
@@ -160,7 +160,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             selectedChat.users[0]._id === user.userExists._id
               ? selectedChat.users[0]
               : selectedChat.users[1];
-  
+
           // Get the public key for the sender (for storing the sender’s encrypted version)
           const { data: senderPubKeyData } = await axios.post(
             "https://chatapp-5os8.onrender.com/api/user/getting-public-key",
@@ -173,14 +173,14 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             { id: receiver._id },
             config
           );
-  
+
           // Encrypt the message separately for sender and receiver
           const encryptmsgSender = await encryptMessage(newmessage, senderPubKeyData.publicKey);
           const encryptmsgReceiver = await encryptMessage(newmessage, receiverPubKeyData.publicKey);
-  
+
           // Clear the message input
           setNewmessage("");
-  
+
           // Post the one-on-one message with both encrypted contents.
           const { data } = await axios.post(
             "https://chatapp-5os8.onrender.com/api/message",
@@ -202,7 +202,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
       }
     }
   };
-  
+
 
   const handleMessage = (e) => {
     setNewmessage(e.target.value);
@@ -358,7 +358,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
           // backgroundColor: "black"
         }}
       >
-        
+
         {/* Header */}
         <div
           className="d-flex flex-row justify-content-center align-items-center"
@@ -427,7 +427,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
                   <button
                     onClick={openModal}
                     style={{
-                      backgroundColor: "rgb(47,44,44)",                      border: "none",
+                      backgroundColor: "rgb(47,44,44)", border: "none",
                       padding: "0px",
                       marginLeft: "2px",
                       marginRight: "0px",
@@ -451,9 +451,9 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
               )}
             </div>
             {selectedChat?.isGroupChat ? (
-              <div style={{backgroundColor: "rgb(47,44,44)",fontSize:"2rem"}}>{selectedChat?.chatName}</div>
+              <div style={{ backgroundColor: "rgb(47,44,44)", fontSize: "2rem" }}>{selectedChat?.chatName}</div>
             ) : (
-              <div style={{ padding: "0px",backgroundColor: "rgb(47,44,44)",fontSize:"2rem" }}>
+              <div style={{ padding: "0px", backgroundColor: "rgb(47,44,44)", fontSize: "2rem" }}>
                 {selectedChat?.users?.[0]?._id === user.userExists._id
                   ? selectedChat?.users?.[1]?.name
                   : selectedChat?.users?.[0]?.name}
@@ -490,7 +490,7 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
             marginBottom: "25px",
             height: "75vh",
             zIndex: 1,
-            backgroundColor:"black"
+            backgroundColor: "black"
           }}
         >
           <MessageArea
@@ -504,35 +504,34 @@ const ChatArea = ({ fetchagain, setFetchagain }) => {
 
         {/* Input Box */}
         <div
-  style={{
-    position: "sticky",      // use sticky as required
-    bottom: 10,              // stick to the bottom of the parent container
-    left: 0,
-    width: "100%",
-    zIndex: 2,
-    backgroundColor: "green",
-    padding: "4px",         // keep padding as needed
-    boxSizing: "border-box",
-    marginTop: "5px"
-    // Do not set a fixed height here so that the container fits its content.
-  }}
->
-  <input
-    style={{
-      height: "50px",        // the height of the input field
-      width: "100%",
-      border: "none",
-      boxSizing: "border-box",
-      backgroundColor:"white",
-      color:"black"
-      // Removed any marginBottom that might push it out.
-    }}
-    placeholder="Enter the message..."
-    onKeyDown={sendMessage}
-    onChange={handleMessage}
-    value={newmessage}
-  />
-</div>
+          style={{
+            position: "fixed",
+            bottom: "env(safe-area-inset-bottom, 0)",
+            width: "100%",
+            padding: "10px",
+            backgroundColor: "rgb(47,44,44)",
+            zIndex: 2,
+          }}
+        >
+          <input
+            type="text"
+            value={newmessage}
+            onChange={handleMessage}
+            placeholder="Type a message..."
+            onKeyDown={sendMessage}
+            style={{
+              width: "100%",
+              padding: "10px",
+              borderRadius: "20px",
+              border: "none",
+              outline: "none",
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              color: "white",
+              fontSize: "16px",
+            }}
+          />
+        </div>
+
 
       </div>
 

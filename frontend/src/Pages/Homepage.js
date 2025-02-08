@@ -35,7 +35,7 @@ const Homepage = () => {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: isMobile ? "10px" : "20px",
+    padding: isMobile ? "5px" : "20px",
     overflowY: "auto", // Enable vertical scrolling
   };
 
@@ -44,7 +44,7 @@ const Homepage = () => {
     width: "100%",
     maxWidth: isMobile ? "90%" : "450px",
     backgroundColor: "rgba(30, 30, 30, 0.9)",
-    padding: isMobile ? "20px" : isTablet ? "30px" : "40px",
+    padding: isMobile ? "10px" : isTablet ? "30px" : "40px",
     borderRadius: isMobile ? "8px" : "12px",
     boxShadow: "0 10px 25px rgba(0, 0, 0, 0.8)",
     backdropFilter: "blur(8px)",
